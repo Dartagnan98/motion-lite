@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Lite - Google Ads API Integration Design Document</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap');
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #1a1a1a;
+    background: #fff;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  .page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 60px 48px;
+  }
+
+  /* Cover Page */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 90vh;
+    padding-bottom: 80px;
+  }
+
+  .cover .logo-mark {
+    width: 48px;
+    height: 48px;
+    background: #1a1a1a;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 48px;
+  }
+
+  .cover .logo-mark span {
+    color: #22c55e;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+  }
+
+  .cover h1 {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+    color: #0a0a0a;
+  }
+
+  .cover .subtitle {
+    font-size: 18px;
+    color: #555;
+    font-weight: 400;
+    margin-bottom: 48px;
+  }
+
+  .cover .meta-table {
+    border-top: 1px solid #e5e5e5;
+    padding-top: 32px;
+  }
+
+  .cover .meta-row {
+    display: flex;
+    padding: 8px 0;
+  }
+
+  .cover .meta-label {
+    width: 140px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+  }
+
+  .cover .meta-value {
+    font-size: 14px;
+    color: #333;
+  }
+
+  .cover .meta-value a {
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px solid #ccc;
+  }
+
+  /* Section Pages */
+  .section {
+    padding-top: 20px;
+  }
+
+  .section-number {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #22c55e;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 24px;
+    color: #0a0a0a;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 28px;
+    margin-bottom: 12px;
+    color: #1a1a1a;
+  }
+
+  p {
+    margin-bottom: 16px;
+    color: #333;
+  }
+
+  ul, ol {
+    margin-bottom: 16px;
+    padding-left: 24px;
+  }
+
+  li {
+    margin-bottom: 8px;
+    color: #333;
+  }
+
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12.5px;
+    background: #f5f5f5;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: #1a1a1a;
+  }
+
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 13px;
+  }
+
+  .info-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #555;
+  }
+
+  .info-table td {
+    padding: 10px 14px;
+    border: 1px solid #e8e8e8;
+    vertical-align: top;
+  }
+
+  .callout {
+    background: #f8faf8;
+    border-left: 3px solid #22c55e;
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .callout p {
+    margin: 0;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .flow-diagram {
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 24px;
+    margin: 24px 0;
+    text-align: center;
+  }
+
+  .flow-step {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 4px;
+    vertical-align: middle;
+  }
+
+  .flow-arrow {
+    display: inline-block;
+    color: #22c55e;
+    font-size: 18px;
+    margin: 0 6px;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 32px 0;
+  }
+
+  /* Footer */
+  .page-footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Print Styles */
+  @media print {
+    body {
+      font-size: 12px;
+    }
+
+    .page {
+      padding: 0;
+      max-width: none;
+    }
+
+    .cover {
+      min-height: 100vh;
+      page-break-after: always;
+    }
+
+    .section {
+      page-break-before: always;
+    }
+
+    .no-break {
+      page-break-inside: avoid;
+    }
+
+    .info-table {
+      page-break-inside: avoid;
+    }
+
+    .flow-diagram {
+      page-break-inside: avoid;
+    }
+
+    .page-footer {
+      position: fixed;
+      bottom: 20px;
+      left: 48px;
+      right: 48px;
+    }
+
+    a {
+      color: #333 !important;
+      text-decoration: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Cover Page -->
+  <div class="cover">
+    <div class="logo-mark"><span>C</span></div>
+    <h1>Motion Lite</h1>
+    <div class="subtitle">Google Ads API Integration Design Document</div>
+
+    <div class="meta-table">
+      <div class="meta-row">
+        <div class="meta-label">Company</div>
+        <div class="meta-value">Example Co</div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-label">Website</div>
+        <div class="meta-value"><a href="https://example.com">example.com</a></div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-label">Document Type</div>
+        <div class="meta-value">API Integration Design Document</div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-label">Date</div>
+        <div class="meta-value">March 2026</div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-label">Version</div>
+        <div class="meta-value">1.0</div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-label">Classification</div>
+        <div class="meta-value">Internal</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 1: Overview -->
+  <div class="section">
+    <div class="section-number">Section 1</div>
+    <h2>Overview</h2>
+
+    <p>Motion Lite is an internal campaign management platform built by Example Co, a digital marketing agency specializing in paid advertising for local service businesses. The platform integrates with the Google Ads API to provide centralized campaign monitoring, performance reporting, and optimization recommendations across all managed client accounts.</p>
+
+    <h3>Purpose</h3>
+    <p>The Google Ads API integration enables Motion Lite to pull campaign performance data from all client accounts managed under a single Manager (MCC) account. This data powers the platform's reporting dashboards, automated alerting, and optimization recommendations.</p>
+
+    <h3>Scope of API Usage</h3>
+    <ul>
+      <li>Read-only access to campaign performance metrics</li>
+      <li>Account enumeration under MCC hierarchy</li>
+      <li>Daily metric aggregation and trend analysis</li>
+      <li>No campaign creation, modification, or budget changes via API</li>
+    </ul>
+
+    <div class="callout">
+      <p>Motion Lite is used exclusively by Example Co staff to manage client advertising accounts. It is not a publicly available product or SaaS offering.</p>
+    </div>
+  </div>
+
+  <!-- Section 2: Architecture -->
+  <div class="section">
+    <div class="section-number">Section 2</div>
+    <h2>Architecture</h2>
+
+    <h3>Technology Stack</h3>
+    <table class="info-table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Technology</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Frontend</td>
+          <td>Next.js (React)</td>
+          <td>Server-side rendered dashboard with client-side interactivity</td>
+        </tr>
+        <tr>
+          <td>Server</td>
+          <td>Hetzner VPS</td>
+          <td>Dedicated virtual private server for hosting</td>
+        </tr>
+        <tr>
+          <td>Local Database</td>
+          <td>SQLite</td>
+          <td>Application configuration, user sessions, cache</td>
+        </tr>
+        <tr>
+          <td>Analytics Storage</td>
+          <td>Supabase (PostgreSQL)</td>
+          <td>Time-series performance data, daily metrics</td>
+        </tr>
+        <tr>
+          <td>Google Ads API</td>
+          <td>REST v22</td>
+          <td>GAQL query interface for performance data retrieval</td>
+        </tr>
+        <tr>
+          <td>Authentication</td>
+          <td>OAuth 2.0</td>
+          <td>Offline access with refresh token support</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Manager Account</h3>
+    <p>All client accounts are managed under a single Google Ads Manager (MCC) account:</p>
+    <ul>
+      <li><strong>MCC Account ID:</strong> 106-859-2944</li>
+      <li>Client accounts are linked as sub-accounts under this MCC</li>
+      <li>API requests are made at the MCC level with client account targeting via <code>login-customer-id</code> header</li>
+    </ul>
+
+    <h3>System Architecture Diagram</h3>
+    <div class="flow-diagram">
+      <div class="flow-step">Google Ads API<br><small>v22 REST</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Next.js Server<br><small>Hetzner VPS</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Supabase<br><small>PostgreSQL</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Dashboard UI<br><small>React</small></div>
+    </div>
+  </div>
+
+  <!-- Section 3: API Usage -->
+  <div class="section">
+    <div class="section-number">Section 3</div>
+    <h2>API Usage</h2>
+
+    <h3>Endpoints Used</h3>
+    <table class="info-table">
+      <thead>
+        <tr>
+          <th>Endpoint / Method</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>customers:listAccessibleCustomers</code></td>
+          <td>Enumerate all client accounts under the MCC hierarchy</td>
+        </tr>
+        <tr>
+          <td><code>googleAds:searchStream</code></td>
+          <td>Execute GAQL queries to pull campaign, ad group, and keyword performance metrics</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Data Fields Retrieved</h3>
+    <p>The following metrics are queried via GAQL (Google Ads Query Language):</p>
+    <ul>
+      <li><code>metrics.cost_micros</code> -- Total spend</li>
+      <li><code>metrics.impressions</code> -- Ad impressions served</li>
+      <li><code>metrics.clicks</code> -- Clicks received</li>
+      <li><code>metrics.ctr</code> -- Click-through rate</li>
+      <li><code>metrics.conversions</code> -- Total conversions</li>
+      <li><code>metrics.conversions_value</code> -- Conversion value</li>
+      <li><code>metrics.cost_per_conversion</code> -- Cost per acquisition</li>
+      <li>Calculated: <strong>ROAS</strong> (conversions_value / cost)</li>
+      <li><code>metrics.search_impression_share</code> -- Search impression share</li>
+    </ul>
+
+    <h3>Sync Frequency</h3>
+    <table class="info-table">
+      <thead>
+        <tr>
+          <th>Sync Type</th>
+          <th>Frequency</th>
+          <th>Date Range</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Automatic background sync</td>
+          <td>Every 4 hours</td>
+          <td>Last 3 days (rolling)</td>
+        </tr>
+        <tr>
+          <td>Manual refresh (user-triggered)</td>
+          <td>On demand</td>
+          <td>Last 3-30 days (configurable)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Data Storage</h3>
+    <p>All retrieved data is stored in the Supabase <code>google_ads_daily</code> table with the following schema:</p>
+    <ul>
+      <li>Account ID, campaign ID, ad group ID</li>
+      <li>Date (daily granularity)</li>
+      <li>All metrics listed above</li>
+      <li>Campaign type, campaign name, status</li>
+      <li>Sync timestamp</li>
+    </ul>
+  </div>
+
+  <!-- Section 4: Data Flow -->
+  <div class="section">
+    <div class="section-number">Section 4</div>
+    <h2>Data Flow</h2>
+
+    <h3>Authentication Flow</h3>
+    <div class="flow-diagram">
+      <div class="flow-step">Agency User<br><small>Initiates connection</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Google OAuth<br><small>Consent screen</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Authorization Code<br><small>Returned to app</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Token Exchange<br><small>Access + Refresh</small></div>
+    </div>
+
+    <ol>
+      <li><strong>OAuth Initiation:</strong> Agency user clicks "Connect Google Ads" in the Motion Lite settings panel</li>
+      <li><strong>Google Consent:</strong> User is redirected to Google's OAuth consent screen with scope <code>https://www.googleapis.com/auth/adwords</code></li>
+      <li><strong>Token Exchange:</strong> Authorization code is exchanged for access token and refresh token</li>
+      <li><strong>Secure Storage:</strong> Tokens are stored encrypted in the application database with refresh token support for long-lived access</li>
+    </ol>
+
+    <h3>Data Sync Flow</h3>
+    <div class="flow-diagram">
+      <div class="flow-step">Cron Trigger<br><small>Every 4 hours</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">List Accounts<br><small>Under MCC</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">GAQL Queries<br><small>Per account</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-step">Supabase Upsert<br><small>Daily metrics</small></div>
+    </div>
+
+    <ol>
+      <li><strong>Trigger:</strong> Background cron job runs every 4 hours (or user triggers manual refresh)</li>
+      <li><strong>Account Discovery:</strong> <code>listAccessibleCustomers</code> enumerates all accounts under MCC 106-859-2944</li>
+      <li><strong>Data Pull:</strong> For each active account, GAQL queries retrieve daily metrics for the configured date range</li>
+      <li><strong>Storage:</strong> Results are upserted into the <code>google_ads_daily</code> Supabase table (keyed by account + campaign + date)</li>
+      <li><strong>Dashboard:</strong> Frontend displays aggregated metrics with date range filtering and account selection</li>
+    </ol>
+
+    <div class="callout">
+      <p><strong>Data Sharing:</strong> No data retrieved from the Google Ads API is shared with third parties. All data remains within Example Co' infrastructure for internal reporting purposes only.</p>
+    </div>
+  </div>
+
+  <!-- Section 5: User Interface -->
+  <div class="section">
+    <div class="section-number">Section 5</div>
+    <h2>User Interface</h2>
+
+    <p>The Motion Lite Google Ads dashboard provides a comprehensive view of campaign performance across all managed client accounts. The following describes the key interface components:</p>
+
+    <h3>Dashboard Summary</h3>
+    <div class="no-break">
+      <p>The top-level dashboard displays aggregate metrics in a summary bar:</p>
+      <ul>
+        <li><strong>Total Spend</strong> -- Aggregate cost across all campaigns for the selected date range</li>
+        <li><strong>Clicks</strong> -- Total clicks received</li>
+        <li><strong>Impressions</strong> -- Total impressions served</li>
+        <li><strong>CTR</strong> -- Aggregate click-through rate</li>
+        <li><strong>Conversions</strong> -- Total conversion count</li>
+        <li><strong>CPA</strong> -- Average cost per acquisition</li>
+        <li><strong>ROAS</strong> -- Return on ad spend</li>
+      </ul>
+    </div>
+
+    <h3>Campaign Type Breakdown</h3>
+    <div class="no-break">
+      <p>Performance is segmented into cards by campaign type:</p>
+      <ul>
+        <li><strong>Search</strong> -- Text ads on Google Search results</li>
+        <li><strong>Display</strong> -- Banner and responsive display ads across Google Display Network</li>
+        <li><strong>Performance Max (PMax)</strong> -- AI-driven cross-channel campaigns</li>
+        <li><strong>Video</strong> -- YouTube and video partner campaigns</li>
+        <li><strong>Shopping</strong> -- Product listing ads (where applicable)</li>
+      </ul>
+      <p>Each card shows spend, clicks, conversions, and CPA for that campaign type.</p>
+    </div>
+
+    <h3>Visualizations</h3>
+    <div class="no-break">
+      <ul>
+        <li><strong>Search Impression Share:</strong> Gauge visualization showing share of eligible impressions captured vs. lost (budget and rank)</li>
+        <li><strong>Daily Spend &amp; Conversions:</strong> Dual-axis time series chart showing daily spend trend alongside conversion volume</li>
+      </ul>
+    </div>
+
+    <h3>Campaign Performance Table</h3>
+    <div class="no-break">
+      <p>A sortable data table lists all active campaigns with columns for:</p>
+      <ul>
+        <li>Campaign name and type</li>
+        <li>Status (Active / Paused)</li>
+        <li>Spend, impressions, clicks, CTR</li>
+        <li>Conversions, CPA, conversion value, ROAS</li>
+      </ul>
+    </div>
+
+    <h3>Filters</h3>
+    <ul>
+      <li><strong>Date Range:</strong> Preset ranges (Today, 7d, 14d, 30d) and custom date picker</li>
+      <li><strong>Account Selector:</strong> Filter by individual client account or view all accounts</li>
+    </ul>
+  </div>
+
+  <!-- Section 6: Security & Privacy -->
+  <div class="section">
+    <div class="section-number">Section 6</div>
+    <h2>Security &amp; Privacy</h2>
+
+    <h3>Authentication &amp; Access Control</h3>
+    <ul>
+      <li>OAuth 2.0 tokens are encrypted at rest in the application database</li>
+      <li>Access to Motion Lite is restricted to authenticated agency users with owner role only</li>
+      <li>No public-facing access to the Google Ads data or API credentials</li>
+      <li>Session management with secure, HTTP-only cookies</li>
+    </ul>
+
+    <h3>Data Handling</h3>
+    <ul>
+      <li>No client Personally Identifiable Information (PII) is stored beyond account names and campaign identifiers</li>
+      <li>Performance metrics are aggregate-level data (impressions, clicks, costs) with no user-level tracking</li>
+      <li>Data is stored on Example Co' managed infrastructure (Hetzner VPS and Supabase)</li>
+      <li>No data is sold, shared, or transmitted to third parties</li>
+    </ul>
+
+    <h3>Token Security</h3>
+    <table class="info-table">
+      <thead>
+        <tr>
+          <th>Measure</th>
+          <th>Implementation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Encryption at rest</td>
+          <td>OAuth tokens encrypted before database storage</td>
+        </tr>
+        <tr>
+          <td>Token refresh</td>
+          <td>Automatic refresh token rotation on expiry</td>
+        </tr>
+        <tr>
+          <td>Scope limitation</td>
+          <td>Single scope: <code>adwords</code> (read-only campaign data)</td>
+        </tr>
+        <tr>
+          <td>Credential isolation</td>
+          <td>API keys and secrets stored in environment variables, not in code</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Policies</h3>
+    <ul>
+      <li><strong>Privacy Policy:</strong> <a href="https://example.com/privacy">https://example.com/privacy</a></li>
+      <li><strong>Terms of Service:</strong> <a href="https://example.com/terms">https://example.com/terms</a></li>
+    </ul>
+  </div>
+
+  <!-- Section 7: Rate Limiting Compliance -->
+  <div class="section">
+    <div class="section-number">Section 7</div>
+    <h2>Rate Limiting &amp; API Compliance</h2>
+
+    <h3>Request Throttling</h3>
+    <ul>
+      <li><strong>Automatic sync cooldown:</strong> Minimum 4-hour interval between background sync cycles</li>
+      <li><strong>Manual refresh cooldown:</strong> Rate-limited to prevent excessive API calls</li>
+      <li><strong>Per-account queuing:</strong> Accounts are queried sequentially, not in parallel, to avoid burst traffic</li>
+    </ul>
+
+    <h3>Query Optimization</h3>
+    <ul>
+      <li>Queries are limited to <strong>active campaigns only</strong> (filters out removed and paused campaigns)</li>
+      <li>Date ranges are kept minimal (3-day rolling window for automatic syncs)</li>
+      <li>Results are cached locally to prevent redundant API calls</li>
+    </ul>
+
+    <h3>Error Handling</h3>
+    <table class="info-table">
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Rate limit (429)</td>
+          <td>Exponential backoff starting at 5 seconds, max 3 retries</td>
+        </tr>
+        <tr>
+          <td>Auth failure (401)</td>
+          <td>Attempt token refresh; alert user if refresh fails</td>
+        </tr>
+        <tr>
+          <td>Server error (5xx)</td>
+          <td>Retry with backoff; skip account and continue with others</td>
+        </tr>
+        <tr>
+          <td>Quota exceeded</td>
+          <td>Halt sync cycle; resume at next scheduled interval</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <p>Motion Lite's API usage patterns are designed to stay well within Google Ads API rate limits and quotas. The platform prioritizes minimal, efficient queries to reduce API load.</p>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Example Co - Confidential</span>
+    <span>Motion Lite - Google Ads API Design Document - March 2026</span>
+  </div>
+
+</div>
+
+</body>
+</html>

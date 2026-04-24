@@ -1,0 +1,80 @@
+{
+  "name": "motion-lite",
+  "version": "1.0.0",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev -p 4000 --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "electron": "electron .",
+    "electron:build": "electron-builder --mac",
+    "desktop": "electron ."
+  },
+  "build": {
+    "appId": "com.example.motionlite",
+    "productName": "Motion Lite",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "public/icon-512.png",
+      "target": "dmg"
+    },
+    "files": [
+      "electron/**/*",
+      "public/**/*",
+      "src/**/*",
+      "next.config.ts",
+      "tsconfig.json",
+      "package.json",
+      "postcss.config.mjs",
+      "eslint.config.mjs",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "uploads",
+        "to": "uploads",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@tiptap/extension-link": "^3.22.2",
+    "@tiptap/react": "^3.22.2",
+    "@tiptap/starter-kit": "^3.22.2",
+    "better-sqlite3": "^12.6.2",
+    "cron-parser": "^5.5.0",
+    "cronstrue": "^3.14.0",
+    "framer-motion": "^12.38.0",
+    "geist": "^1.7.0",
+    "imap": "^0.8.19",
+    "mailparser": "^3.9.0",
+    "next": "16.1.6",
+    "nodemailer": "^7.0.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-force-graph-2d": "^1.29.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/imap": "^0.8.42",
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^20",
+    "@types/nodemailer": "^7.0.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "electron": "^40.8.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
