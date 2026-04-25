@@ -1,11 +1,15 @@
 // Email sending via SendGrid + Gmail API fallback
 import { getProviderToken, updateProviderToken } from './provider-tokens'
+import { getSetting } from './settings'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
 const FROM_EMAIL = 'info@example.com'
 const FROM_NAME = 'Motion Lite'
+
+function sendgridKey(): string | null {
+  return process.env.SENDGRID_API_KEY || (getSetting('sendgrid_api_key') as string) || null
+}
 
 // ─── SendGrid ───
 
@@ -14,12 +18,13 @@ async function sendViaSendGrid(
   subject: string,
   htmlBody: string
 ): Promise<{ success: boolean; error?: string }> {
-  if (!SENDGRID_API_KEY) return { success: false, error: 'SENDGRID_API_KEY not set' }
+  const apiKey = sendgridKey()
+  if (!apiKey) return { success: false, error: 'SENDGRID_API_KEY not set (env or settings)' }
 
   const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${SENDGRID_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -141,7 +146,7 @@ export async function sendEmail(
   htmlBody: string
 ): Promise<{ success: boolean; error?: string }> {
   // Try SendGrid first, fall back to Gmail
-  if (SENDGRID_API_KEY) {
+  if (sendgridKey()) {
     const result = await sendViaSendGrid(to, subject, htmlBody)
     if (result.success) return result
     console.error('[email] SendGrid failed, trying Gmail fallback:', result.error)
