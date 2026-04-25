@@ -59,7 +59,9 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
   const [showNewMenu, setShowNewMenu] = useState(false)
   const [showCreateProject, setShowCreateProject] = useState(false)
   const [user, setUser] = useState<UserInfo | null>(null)
-  const isAdmin = user?.email === 'operator@example.com'
+  // Owner of the workspace sees admin-only nav (AI section, Productivity, ad accounts).
+  // Was previously hardcoded to a single email — broke when a fresh signup used any other address.
+  const isAdmin = user?.role === 'owner'
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [favoritesOpen, setFavoritesOpen] = useState(true)
