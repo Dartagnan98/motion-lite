@@ -57,6 +57,21 @@ cp .env.example .env.local
 # Edit .env.local — at minimum, set ANTHROPIC_API_KEY
 ```
 
+**What you need to plug in (your own dev credentials):**
+
+| Service | Required for | Where to get it |
+|---|---|---|
+| Anthropic API key | AI meeting notes, dispatch, agent runs | console.anthropic.com → API keys |
+| SendGrid API key | Outbound email (notifications, invites). Can also be set in Settings → CRM → SendGrid (no restart). Alternative: SMTP creds. | sendgrid.com → Settings → API Keys |
+| Facebook (Meta) developer app | Meta Ads dashboard (`/ads`), Facebook OAuth, ad account access | developers.facebook.com → My Apps → Create App → Business → grab App ID + Secret. Add scopes: `ads_management`, `ads_read`, `read_insights`, `pages_read_engagement`, `business_management` |
+| Google OAuth client | Sign in with Google, Gmail send, Calendar sync, Google Ads OAuth | console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client ID. Authorized redirect: `http://localhost:4000/api/auth/google/callback` |
+| Google Ads developer token | Google Ads dashboard (`/google-ads`), pulling campaign data | ads.google.com → Tools → API Center → request a developer token (takes 1-2 days for approval). Also need a Manager (MCC) account customer ID for `GOOGLE_ADS_LOGIN_CUSTOMER_ID` |
+| Zoom OAuth app | Zoom transcript ingest into Meeting Notes | marketplace.zoom.us → Build App → OAuth → grab Client ID + Secret |
+| VAPID keys | Web push notifications (optional) | `npx web-push generate-vapid-keys` |
+| IMAP creds | Email-based meeting transcript ingest (Plaud/Otter/Fireflies → email) | App-specific password from Gmail/Outlook |
+
+The Sign in with Google button is removed from the login page. If you wire your own Google OAuth (`GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`), the `/api/auth/google` route still works — just add the button back in `src/app/login/page.tsx`.
+
 ### 4. Run
 
 ```bash
@@ -64,17 +79,15 @@ npm run dev
 # Opens on http://localhost:4000
 ```
 
-First boot will auto-create the SQLite schema. You'll see the login page — there's no signup flow in lite, so create your first user via the API:
+First boot auto-creates the SQLite schema. Create your first admin user via the login API (signup is enabled, the first user becomes the owner):
 
 ```bash
-curl -X POST http://localhost:4000/api/auth/invite \
+curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"you@example.com","name":"You"}'
+  -d '{"email":"you@example.com","name":"You","password":"pick-something","signup":true}'
 ```
 
-Then check the server console for the magic link, paste in browser, you're in.
-
-(Alternative: open `src/lib/auth.ts` and find the user-creation helper, run it manually with `npx ts-node`.)
+Then go to http://localhost:4000/login and sign in with the email + password you just used.
 
 ### 5. (Optional) Build the desktop app
 
