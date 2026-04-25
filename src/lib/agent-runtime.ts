@@ -1034,7 +1034,7 @@ You can mix markdown text and JSON blocks. If content starts with [ and is valid
         type: 'object' as const,
         properties: {
           name: { type: 'string' },
-          slug: { type: 'string', description: 'URL-safe slug (e.g. uppercuts)' },
+          slug: { type: 'string', description: 'URL-safe slug (e.g. acme-co)' },
           industry: { type: 'string' },
           context: { type: 'string', description: 'Background info about this client' },
           notes: { type: 'string' },
@@ -1270,7 +1270,7 @@ You can mix markdown text and JSON blocks. If content starts with [ and is valid
       input_schema: {
         type: 'object' as const,
         properties: {
-          client_slug: { type: 'string', description: 'Client slug (e.g. uppercuts-barbershop, eco-spa, animo, hpa)' },
+          client_slug: { type: 'string', description: 'Client slug (your own naming, e.g. acme-co)' },
           days: { type: 'number', description: 'Number of days back (default 7)' },
           campaign_name: { type: 'string', description: 'Filter by campaign name (partial match)' },
           sort_by: { type: 'string', description: 'Sort by: spend, ctr, cpc, leads, cpl (default: spend)' },
@@ -2354,16 +2354,8 @@ async function executeTool(toolName: string, input: Record<string, unknown>): Pr
           const accounts = await resp.json()
           return JSON.stringify({ accounts })
         } catch {
-          // Fallback: list unique accounts from performance data
-          return JSON.stringify({ accounts: [
-            { id: 'act_236690350962454', name: 'Client A brand Barbershop', client_slug: 'uppercuts-barbershop' },
-            { id: 'act_698789644506560', name: 'Client A brand Tattoo', client_slug: 'uppercuts-tattoo' },
-            { id: 'act_906967752025699', name: 'Client A brand Barber Academy', client_slug: 'uppercuts-academy' },
-            { id: 'act_2371938493039107', name: 'Client C brand Vancouver Island', client_slug: 'eco-spa' },
-            { id: 'act_980417616201931', name: 'Animo Boxing & MMA', client_slug: 'animo' },
-            { id: 'act_317785086341567', name: 'High Performance Coaching', client_slug: 'hpa' },
-            { id: 'act_418635207363932', name: 'CTRL', client_slug: 'ctrl' },
-          ]})
+          // No fallback — connect ad accounts via Settings → Integrations
+          return JSON.stringify({ accounts: [], note: 'No ad accounts connected. Connect a Meta or Google Ads account in Settings → Integrations.' })
         }
       }
 

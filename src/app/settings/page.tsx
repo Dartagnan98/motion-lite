@@ -5045,7 +5045,7 @@ function ClientPortalsSection() {
               type="text"
               value={newSlug}
               onChange={e => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-              placeholder="e.g. uppercuts, animo, elevation"
+              placeholder="e.g. acme-co, retailer-ny"
               className="w-full bg-field border border-border rounded-md px-2 py-1.5 text-[13px] text-text outline-none focus:border-accent placeholder:text-text-dim"
               autoFocus
             />
