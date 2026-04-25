@@ -29,8 +29,10 @@ setInterval(() => {
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
+  // Skip rate limit in dev — locks the operator out during normal testing.
+  const isDev = process.env.NODE_ENV !== 'production'
 
-  if (!checkRateLimit(ip)) {
+  if (!isDev && !checkRateLimit(ip)) {
     return NextResponse.json({ error: 'Too many login attempts. Try again in 15 minutes.' }, { status: 429 })
   }
 
