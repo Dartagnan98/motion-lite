@@ -17,7 +17,8 @@ Expect rough edges. Some routes import dead code that the strip pass didn't catc
 - **Agents** — sub-agent definitions used by dispatch (Gary/Ricky/Sofia-style specialists)
 - **Skills** — skills library (read-only; the actual SKILL.md files live in `~/.claude/skills/` on your machine)
 - **Today / Agenda** — daily planning surface
-- **Settings** — workspaces, members (single-user mode in lite), integrations (most stripped)
+- **Settings** — workspaces, members (single-user mode in lite), integrations (Meta Ads, Google Ads, Google OAuth, Zoom — bring your own OAuth apps + dev tokens, see `.env.example`)
+- **Ads dashboards** — `/ads` (Meta) + `/google-ads` show campaign-level performance once you've connected your accounts
 
 ## Stack
 
@@ -154,7 +155,8 @@ If you don't want any of this — just delete `/dispatch` and `/api/dispatch` ro
 ## Known rough edges
 
 - Some imports may reference deleted CRM code — fix by deleting the importing route or stubbing the function
-- Settings page still lists CRM/messaging integration tabs (UI placeholder — they no-op)
+- Meta + Google Ads dashboards are wired and live — but you bring your own OAuth client ID, app secret, and (for Google Ads) developer token. See the integration env vars in `.env.example`.
+- Some settings tabs (CRM/messaging) are UI placeholders that no-op — wired UI for integrations we did not include code for
 - The agents listed in `/agents` page reference skill files that live in `~/.claude/skills/` (the marketing-skills bundle from this share). If those skills don't exist on disk, agents will run but with less context.
 - IMAP poller logs noisy errors if creds are wrong — set IMAP_* env vars or comment out the `imapPoller.start()` call in `src/lib/startup.ts`
 - Push notifications need VAPID keys — also optional, errors are non-fatal
