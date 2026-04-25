@@ -367,6 +367,7 @@ function initAppTables() {
       slug TEXT UNIQUE NOT NULL,
       color TEXT DEFAULT '#7a6b55',
       sort_order INTEGER DEFAULT 0,
+      public_id TEXT,
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
       updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
     )
@@ -992,6 +993,16 @@ function initAppTables() {
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
     )
   `)
+
+  // ─── Ensure public_id columns exist before any seeding ───
+  const earlyPublicIdTables = [
+    'workspaces','folders','projects','stages','tasks','docs','team_members',
+    'client_profiles','crm_opportunities','crm_companies','crm_webchat_widgets',
+    'crm_calendars','crm_lists','crm_review_requests'
+  ]
+  for (const t of earlyPublicIdTables) {
+    try { d.exec(`ALTER TABLE ${t} ADD COLUMN public_id TEXT`) } catch { /* already exists or table not yet created */ }
+  }
 
   // ─── Seed Named Agents ───
   seedNamedAgents(d)
@@ -1726,6 +1737,7 @@ function initAppTables() {
   // Workspace: is_private flag, description
   try { d.exec('ALTER TABLE workspaces ADD COLUMN is_private INTEGER DEFAULT 0') } catch { /* already exists */ }
   try { d.exec('ALTER TABLE workspaces ADD COLUMN description TEXT') } catch { /* already exists */ }
+  try { d.exec('ALTER TABLE workspaces ADD COLUMN public_id TEXT') } catch { /* already exists */ }
 
   // Mark existing private workspace
   try { d.exec("UPDATE workspaces SET is_private = 1 WHERE slug = 'my-private'") } catch { /* */ }
@@ -1926,6 +1938,8 @@ function initAppTables() {
       created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
     )
   `)
+
+  try { d.exec('ALTER TABLE team_members ADD COLUMN public_id TEXT') } catch { /* already exists */ }
 
   // Seed default team members if table is empty
   const memberCount = (d.prepare('SELECT COUNT(*) as c FROM team_members').get() as { c: number }).c

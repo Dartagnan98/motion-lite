@@ -34,19 +34,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many login attempts. Try again in 15 minutes.' }, { status: 429 })
   }
 
-  const { email, password, signup } = await req.json()
-
-  // Signup is disabled -- invite only
-  if (signup) {
-    return NextResponse.json({ error: 'Signup is disabled. Contact your workspace admin for an invite.' }, { status: 403 })
-  }
+  const { email, password, name, signup } = await req.json()
 
   if (!email || !password) {
     return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
   }
 
   try {
-    const user = await loginWithPassword(email, password)
+    let user
+    if (signup) {
+      const { signupWithPassword } = await import('@/lib/auth')
+      user = await signupWithPassword(email, name || email.split('@')[0], password)
+    } else {
+      user = await loginWithPassword(email, password)
+    }
 
     const sessionId = await createSession(user.id)
 

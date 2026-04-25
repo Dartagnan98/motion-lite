@@ -1,0 +1,163 @@
+.installBanner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+  z-index: 45;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--bg-panel) 88%, var(--bg-elevated));
+  box-shadow: 0 16px 36px rgba(10, 8, 4, 0.34);
+}
+
+.installActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.mobileNav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg-chrome) 92%, var(--bg-panel));
+}
+
+.mobileNavInner {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+}
+
+.mobileNavItem {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 58px;
+  padding: 8px 4px 6px;
+  border-radius: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.mobileNavItemActive {
+  color: var(--text);
+}
+
+.mobileNavDot {
+  position: absolute;
+  top: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 42;
+  background: rgba(10, 8, 4, 0.52);
+}
+
+.sheetWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 43;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.sheet {
+  width: min(100%, 520px);
+  pointer-events: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px 18px 0 0;
+  background: var(--bg-panel);
+  box-shadow: 0 18px 40px rgba(10, 8, 4, 0.42);
+  transform: translateY(0);
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.sheetHeader {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheetHandle {
+  width: 48px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.sheetItems {
+  display: grid;
+  gap: 6px;
+  padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+}
+
+.sheetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.sheetItemActive {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+}
+
+.inlineButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.inlineButtonAccent {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileNavItem,
+  .sheet,
+  .inlineButton {
+    transition: none;
+  }
+}
+
+@media (min-width: 961px) {
+  .installBanner,
+  .mobileNav,
+  .scrim,
+  .sheetWrap {
+    display: none;
+  }
+}

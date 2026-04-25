@@ -22,8 +22,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  seedIfEmpty()
-  ensureAppStartup()
+  try { seedIfEmpty() } catch (e) { console.error('[layout] seedIfEmpty failed:', e instanceof Error ? e.message : e) }
+  try { ensureAppStartup() } catch (e) { console.error('[layout] ensureAppStartup failed:', e instanceof Error ? e.message : e) }
 
   return (
     <html lang="en" className={GeistSans.variable}>
