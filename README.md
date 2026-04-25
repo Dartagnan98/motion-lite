@@ -32,6 +32,17 @@ Expect rough edges. Some routes import dead code that the strip pass didn't catc
 
 ## Setup (15 min)
 
+### 0. (Strongly recommended) Install the marketing-skills bundle
+
+The `/agents` page wires up sub-agents (Gary/Ricky/Sofia/Jimmy/etc) that reference skills living at `~/.claude/skills/`. Without those skills installed, agents will run with no domain context — fine for testing the dispatch loop, but useless for real work.
+
+```bash
+git clone https://github.com/Dartagnan98/hiilite-share ~/code/hiilite-share
+cp -R ~/code/hiilite-share/1-marketing-skills/skills/* ~/.claude/skills/
+```
+
+Restart Claude Code (if open). Now the agents have something to call.
+
 ### 1. Clone + install
 
 ```bash
@@ -89,7 +100,17 @@ curl -X POST http://localhost:4000/api/auth/login \
 
 Then go to http://localhost:4000/login and sign in with the email + password you just used.
 
-### 5. (Optional) Build the desktop app
+### 5. First-run walkthrough
+
+You're logged in. Now what:
+
+1. **Settings → Workspaces** — your default workspace was auto-created. Rename it if you want.
+2. **Projects** — click "New project," pick a stage layout (kanban or list), drop in a couple test tasks. Confirms the core loop works.
+3. **Meeting Notes → New → Paste transcript** — paste any meeting transcript (or any chunk of text), click Process. If your Anthropic key is right, you'll get back a summary, action items, and auto-created tasks against the right project. This is the main AI feature — verify it works before going further.
+4. **Agents → list** — confirm the bundled agents (Gary, Ricky, Sofia, Jimmy, etc) appear. These are MY fake-team naming convention — rename them to whatever fits your work. Each one is a sub-agent definition that calls into a skill from the bundle you installed in Step 0.
+5. **(Optional) Dispatch** — if you set up the bridge in Step 6 below, you can now click "Dispatch" on any task and have your local Claude Code execute it.
+
+### 7. (Optional) Build the desktop app
 
 ```bash
 npm run electron
@@ -185,6 +206,30 @@ Full bridge docs (manual run, troubleshooting, security notes, customizing `clau
 ### To NOT use dispatch
 
 If you don't want any of this — just delete `/dispatch` and `/api/dispatch` routes and remove `dispatch-worker.ts` startup hook in `src/lib/startup.ts`. The rest of the app runs fine without it.
+
+## Operating notes
+
+### Backups
+The DB is a single SQLite file at `~/code/store/motion.db`. **Back it up.** Anything — `cp`, rsync, a launchd job that copies it nightly to iCloud Drive, your call. The app does not back itself up.
+
+### Logs
+- **App** — `npm run dev` logs to stdout. In production, redirect or use PM2.
+- **Bridge worker** — `~/code/motion-lite/tools/bridge/bridge.log` (when run via launchd).
+- **Dispatch in-process worker** — same stream as the app (stdout).
+
+### Schema reset (most common "everything is broken" fix)
+This app auto-migrates schema on boot. If you pull new code and the app boots but pages start 500'ing with column errors, the cleanest fix is:
+```bash
+rm ~/code/store/motion.db
+# restart the app — fresh DB rebuilt against current schema
+```
+You'll lose local data. Back up first if you care.
+
+### Renaming the agents
+The shipped agents (Gary, Ricky, Sofia, Jimmy, Marcus, etc) are named after my fake team. Rename them in **/agents** or directly in the DB. They're just sub-agent definitions — what matters is the underlying skill they reference.
+
+### Companion repo
+Skills bundle: **github.com/Dartagnan98/hiilite-share**. Drop into `~/.claude/skills/` before agents are useful. See setup Step 0.
 
 ## Known rough edges
 
