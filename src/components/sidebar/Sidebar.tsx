@@ -777,6 +777,7 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
                   <div className="flex flex-col gap-0.5 pb-1">
                     <NavItem icon="dispatch" label="Dispatch Board" href="/dispatch" />
                     <NavItem icon="meeting" label="AI Meeting Notes" href="/meeting-notes" />
+                    <NavItem icon="skills" label="Brand Voice" href="/voice" />
                   </div>
                 )}
               </>

@@ -34,6 +34,7 @@ import {
 import { DEFAULT_TASK_VALUES } from './task-constants'
 import { triggerRescheduleServer } from './schedule-trigger'
 import { autoDispatchMeeting } from './meeting-dispatch'
+import { getBrandVoice, buildBrandVoiceSystemPrompt } from './brand-voice'
 
 // ─── Helpers ───
 
@@ -205,6 +206,21 @@ Return ONLY valid JSON with this exact structure:
 }
 
 If there are no action items, return an empty tasks array. Never invent tasks that aren't in the transcript.`
+}
+
+// Wraps buildSystemPrompt() and appends the workspace's brand voice guardrails
+// so any AI-written notes/tasks lean on the saved tone/do/avoid/style rules.
+// Default workspace_id=1 — the meeting processor runs against the primary user.
+function buildSystemPromptWithVoice(workspaceId: number = 1): string {
+  const base = buildSystemPrompt()
+  try {
+    const voice = getBrandVoice(workspaceId)
+    const guardrails = buildBrandVoiceSystemPrompt(voice)
+    return guardrails ? `${base}\n\n${guardrails}` : base
+  } catch (err) {
+    console.error('[meeting-processor] Failed to load brand voice — continuing without:', err)
+    return base
+  }
 }
 
 // ─── Keyword Signal Scan ───
@@ -757,7 +773,7 @@ export async function processTranscriptAI(transcript: PlaudTranscript, userId: n
     return { success: false, error: 'Transcript has no content to process' }
   }
 
-  const systemPrompt = buildSystemPrompt()
+  const systemPrompt = buildSystemPromptWithVoice()
   const keywordSignalBlock = buildKeywordSignalBlock(transcript.title, transcript.summary, transcript.transcript)
 
   const userMessage = `Process this meeting transcript.
@@ -892,7 +908,7 @@ export async function reprocessMeetingNotes(transcript: PlaudTranscript, userId:
     return { success: false, error: 'No content to process' }
   }
 
-  const systemPrompt = buildSystemPrompt()
+  const systemPrompt = buildSystemPromptWithVoice()
   let keywordSignalBlock = 'KEYWORD SIGNAL SCAN: (skipped due to scan error)'
   try {
     keywordSignalBlock = buildKeywordSignalBlock(transcript.title, transcript.summary, transcript.transcript)
