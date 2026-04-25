@@ -581,16 +581,7 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
                         ))
                       )}
                     </div>
-                    {notifications.length > 0 && (
-                      <div className="border-t border-border px-4 py-2">
-                        <a
-                          href="/inbox"
-                          className="text-[13px] text-accent-text hover:text-accent-text/80 transition-colors"
-                        >
-                          View all in Inbox
-                        </a>
-                      </div>
-                    )}
+                    {/* Inbox page stripped from motion-lite — view-all link removed */}
                   </div>
                 )}
               </div>
@@ -753,13 +744,8 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
             {navSections.productivity && (
               <div className="flex flex-col gap-0.5 pb-1">
                 <NavItem icon="agenda" label="Today" href="/today" />
-                <NavItem icon="inbox" label="Inbox" href="/inbox" badge={inboxCount} />
-                <NavItem icon="crm" label="CRM" href="/crm" />
-                <NavItem icon="messages" label="Messages" href="/messages" />
-                {isAdmin && <NavItem icon="agenda" label="AI Agenda" href="/agenda" />}
-                <NavItem icon="calendar" label="Calendar" href="/schedule" rightText={new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit' })} />
                 <NavItem icon="projects" label="Projects & Tasks" href="/projects-tasks" badge={pastDueCount} badgeColor="red" />
-                {/* Database and Team Schedule removed per user request */}
+                {/* Inbox / CRM / Messages / Calendar pages don't exist in motion-lite — stripped from internal CRM. Re-add NavItems if/when those routes ship. */}
               </div>
             )}
 
@@ -775,6 +761,7 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
                 </button>
                 {navSections.ai && (
                   <div className="flex flex-col gap-0.5 pb-1">
+                    <NavItem icon="agenda" label="AI Agenda" href="/agenda" />
                     <NavItem icon="dispatch" label="Dispatch Board" href="/dispatch" />
                     <NavItem icon="meeting" label="AI Meeting Notes" href="/meeting-notes" />
                     <NavItem icon="skills" label="Brand Voice" href="/voice" />
