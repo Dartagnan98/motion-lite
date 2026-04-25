@@ -99,20 +99,47 @@ Wraps the app in Electron, runs locally as a desktop app.
 
 ## AI Meeting Notes
 
-Two ways to feed transcripts:
+Anthropic processes the transcript — writes a summary, extracts action items, auto-creates tasks against the right project. Three ways to get a transcript in:
 
-### Option A — paste
+### Option A — paste manually
 
-`/meeting-notes` page → "New" → paste transcript → click Process. Anthropic will:
-1. Write a 2-3 sentence summary
-2. Extract action items with owner + priority + suggested project
-3. Create tasks in the matched project (or unassigned)
+`/meeting-notes` → "New" → paste transcript → Process. No setup needed.
 
-### Option B — email ingest
+### Option B — generic webhook (works with anything)
 
-Set IMAP_* env vars. Configure your meeting bot (Plaud, Otter, Fireflies, Read.ai) to email transcripts to that inbox. The poller in `src/lib/imap-poller.ts` runs on app startup, pulls new messages, and pipes them through `meeting-processor.ts`.
+Point any tool at `/api/webhooks/transcript`:
 
-Subject-line heuristics route the meeting to the right project — see `meeting-dispatch.ts` for the routing rules.
+```bash
+curl -X POST https://your-app.example.com/api/webhooks/transcript \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-secret: $TRANSCRIPT_WEBHOOK_SECRET" \
+  -d '{
+    "title": "Sales call with Acme",
+    "transcript": "Full transcript text...",
+    "source": "plaud",
+    "external_id": "plaud-rec-12345",
+    "recorded_at": "2026-04-25T10:00:00Z"
+  }'
+```
+
+Set `TRANSCRIPT_WEBHOOK_SECRET` in `.env.local`. Idempotent on `external_id` — safe to retry.
+
+This is what to wire your Plaud webhook (or Otter, Fireflies, Read.ai, a custom scraper, a cron job) into. Any tool that can POST JSON.
+
+### Option C — Zoom direct
+
+`/api/webhooks/transcript/zoom` adapts Zoom's `recording.transcript_completed` event to the generic webhook above. In your Zoom Marketplace app:
+
+1. Add event subscription: `recording.transcript_completed`
+2. Endpoint URL: `https://your-app.example.com/api/webhooks/transcript/zoom`
+3. Set `ZOOM_WEBHOOK_SECRET_TOKEN` in `.env.local` (from Zoom app's Feature page)
+4. Validate the endpoint — Zoom sends a one-shot handshake which this route auto-handles
+
+Zoom uploads a VTT file; the route fetches it, strips timestamps, and forwards plain text.
+
+### Option D — email/IMAP
+
+Set `IMAP_*` env vars, configure your meeting bot to email transcripts to that inbox, the poller in `src/lib/imap-poller.ts` picks them up.
 
 ## Dispatch System
 

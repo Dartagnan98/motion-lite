@@ -1,113 +1,142 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getDb } from '@/lib/db'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const WEBHOOK_SECRET = process.env.INTERNAL_API_SECRET || ''
+const WEBHOOK_SECRET = process.env.TRANSCRIPT_WEBHOOK_SECRET || process.env.INTERNAL_API_SECRET || ''
 
-// In-flight processing guard (prevents duplicate concurrent processing)
-const processing = new Set<number>()
+const processing = new Set<string>()
 
 /**
- * POST /api/webhooks/transcript
- * Supabase Database Webhook fires on INSERT to plaud_transcripts.
- * Auto-processes via AI: cleans transcript, identifies client, creates doc + tasks.
- * Also sends to Jimmy chat session for conversational follow-up.
+ * Generic transcript ingest webhook.
  *
- * Authentication: requires x-internal-token header matching INTERNAL_API_SECRET,
- * or Authorization header matching Supabase service role key.
+ * Wire any meeting-bot or recording tool to POST here. Tested adapters:
+ *   - Plaud (their webhook ships JSON with title + transcript)
+ *   - Zoom (use /api/webhooks/transcript/zoom which adapts Zoom's
+ *     `recording.transcript_completed` payload to this shape)
+ *   - Otter / Fireflies / Read.ai — POST with the body below
+ *   - cron job that scrapes any source and POSTs here
+ *
+ * Auth: x-webhook-secret header must match TRANSCRIPT_WEBHOOK_SECRET env var.
+ *
+ * Body:
+ *   {
+ *     title:       string,            // meeting title
+ *     transcript:  string,            // full transcript text
+ *     summary?:    string,            // optional pre-summary; AI will write
+ *                                     // its own if missing
+ *     source?:     string,            // e.g. "plaud", "zoom", "otter" — for
+ *                                     // logging only
+ *     recorded_at?: string,           // ISO timestamp; defaults to now
+ *     external_id?: string,           // de-dupe key from your source system
+ *     user_id?:    number,            // which Motion Lite user owns it
+ *                                     // (defaults to first owner)
+ *   }
  */
 export async function POST(request: NextRequest) {
-  // Authenticate: accept internal token or Supabase service key
-  const internalToken = request.headers.get('x-internal-token')
-  const authHeader = request.headers.get('authorization')
-  const supabaseAuth = authHeader?.replace('Bearer ', '')
-
-  // Always require auth. If no secret is configured, reject everything (fail-closed).
-  if (!WEBHOOK_SECRET && !SUPABASE_KEY) {
-    console.error('[transcript-webhook] No INTERNAL_API_SECRET or SUPABASE_SERVICE_ROLE_KEY configured -- rejecting all requests')
-    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
+  // Auth (fail-closed)
+  if (!WEBHOOK_SECRET) {
+    console.error('[transcript-webhook] TRANSCRIPT_WEBHOOK_SECRET not set — rejecting')
+    return NextResponse.json({ error: 'Server not configured' }, { status: 500 })
   }
-  const tokenValid = WEBHOOK_SECRET && internalToken === WEBHOOK_SECRET
-  const supabaseValid = SUPABASE_KEY && supabaseAuth === SUPABASE_KEY
-  if (!tokenValid && !supabaseValid) {
-    console.warn('[transcript-webhook] Unauthorized request rejected')
+  const provided = request.headers.get('x-webhook-secret')
+  if (provided !== WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  let body: Record<string, unknown>
   try {
-    const body = await request.json()
-    const { type, record } = body ?? {}
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
 
-    if (type === 'INSERT' && record?.id) {
-      const id = Number(record.id)
+  const title = String(body.title || '').trim()
+  const transcript = String(body.transcript || '').trim()
+  if (!title || !transcript) {
+    return NextResponse.json({ error: 'title + transcript required' }, { status: 400 })
+  }
 
-      // Concurrency guard: skip if already processing this transcript
-      if (processing.has(id)) {
-        console.log(`[transcript-webhook] Already processing transcript ${id}, skipping duplicate`)
-        return NextResponse.json({ ok: true })
+  const summary = String(body.summary || '')
+  const source = String(body.source || 'webhook')
+  const externalId = body.external_id ? String(body.external_id) : null
+  const recordedAt = body.recorded_at ? String(body.recorded_at) : new Date().toISOString()
+  const userId = Number(body.user_id || 0) || resolveDefaultUserId()
+
+  // De-dupe by external_id (idempotent retries)
+  const dedupeKey = externalId ? `${source}:${externalId}` : `${source}:${title}:${recordedAt}`
+  if (processing.has(dedupeKey)) {
+    return NextResponse.json({ ok: true, deduped: true })
+  }
+  processing.add(dedupeKey)
+
+  try {
+    // Persist transcript so it shows up in /meeting-notes UI
+    const d = getDb()
+    ensureTranscriptsTable(d)
+
+    if (externalId) {
+      const existing = d.prepare('SELECT id FROM transcripts WHERE external_id = ?').get(externalId) as { id: number } | undefined
+      if (existing) {
+        return NextResponse.json({ ok: true, deduped: true, id: existing.id })
       }
-      processing.add(id)
-
-      console.log(`[transcript-webhook] Received INSERT for transcript ${id}: "${record.title}"`)
-
-      // 1. AI auto-processing: create doc + tasks (async, don't block webhook)
-      import('@/lib/meeting-processor').then(async ({ processTranscriptAI }) => {
-        try {
-          // Fetch full transcript from Supabase
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/plaud_transcripts?id=eq.${id}&limit=1`, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-          })
-          if (!res.ok) {
-            console.error(`[transcript-webhook] Supabase fetch failed for ${id}: ${res.status}`)
-            return
-          }
-          const rows = await res.json()
-          if (!rows?.[0]) {
-            console.error(`[transcript-webhook] Transcript ${id} not found in Supabase`)
-            return
-          }
-
-          const result = await processTranscriptAI(rows[0], 1)
-          console.log(`[transcript-webhook] AI processing: success=${result.success}, doc=${result.docId}, tasks=${result.taskIds?.length || 0}`)
-
-          // Mark as processed in Supabase
-          if (result.success) {
-            await fetch(`${SUPABASE_URL}/rest/v1/plaud_transcripts?id=eq.${id}`, {
-              method: 'PATCH',
-              headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal',
-              },
-              body: JSON.stringify({
-                processed_by_jimmy: true,
-                jimmy_processed_at: new Date().toISOString(),
-              }),
-            })
-          }
-        } finally {
-          processing.delete(id)
-        }
-      }).catch(err => {
-        console.error(`[transcript-webhook] AI processing failed for ${id}:`, err)
-        processing.delete(id)
-      })
-
-      // 2. Also send to Jimmy chat session for conversational processing
-      import('@/lib/transcript-watcher').then(async ({ processTranscriptById }) => {
-        await processTranscriptById(id)
-      }).catch(err => {
-        console.error(`[transcript-webhook] Jimmy processing failed for ${id}:`, err)
-      })
     }
 
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    console.error('[transcript-webhook] Unhandled error:', err)
-    return NextResponse.json({ ok: true }) // always 200 for Supabase to prevent retries
+    const result = d.prepare(`
+      INSERT INTO transcripts (title, transcript, summary, source, external_id, recorded_at, created_at, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(title, transcript, summary || '', source, externalId, recordedAt, new Date().toISOString(), userId)
+
+    const id = Number(result.lastInsertRowid)
+    console.log(`[transcript-webhook] stored transcript ${id} from ${source}: "${title}"`)
+
+    // Hand off to AI processor (async — don't block the webhook)
+    import('@/lib/meeting-processor').then(async ({ processTranscriptAI }) => {
+      try {
+        const r = await processTranscriptAI(
+          { id, title, summary, transcript, recorded_at: recordedAt, created_at: new Date().toISOString() },
+          userId,
+        )
+        console.log(`[transcript-webhook] AI: doc=${r.docId}, tasks=${r.taskIds?.length || 0}`)
+        if (r.success) {
+          d.prepare('UPDATE transcripts SET processed_at = ?, doc_id = ? WHERE id = ?')
+            .run(new Date().toISOString(), r.docId || null, id)
+        }
+      } catch (err) {
+        console.error(`[transcript-webhook] AI processing failed for ${id}:`, err)
+      }
+    })
+
+    return NextResponse.json({ ok: true, id })
+  } finally {
+    setTimeout(() => processing.delete(dedupeKey), 10000)
+  }
+}
+
+function ensureTranscriptsTable(d: ReturnType<typeof getDb>) {
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS transcripts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      transcript TEXT NOT NULL,
+      summary TEXT,
+      source TEXT,
+      external_id TEXT UNIQUE,
+      recorded_at TEXT,
+      created_at TEXT,
+      processed_at TEXT,
+      doc_id INTEGER,
+      user_id INTEGER
+    )
+  `)
+}
+
+function resolveDefaultUserId(): number {
+  try {
+    const row = getDb().prepare("SELECT id FROM users WHERE role = 'owner' ORDER BY id ASC LIMIT 1").get() as { id: number } | undefined
+    return row?.id || 1
+  } catch {
+    return 1
   }
 }
