@@ -137,29 +137,23 @@ Dispatch is an agentic task queue. You can:
                   (Mac POSTs result back to /api/dispatch/[id]/complete)
 ```
 
-### To wire the bridge
+### To wire the bridge (5 min, scripted)
 
-1. Set `BRIDGE_ENDPOINT` and `BRIDGE_SECRET` in `.env.local`
-2. On your Mac, create a poller script (basic shape):
+A turnkey setup script lives in `tools/bridge/`. On the Mac you want to use as the worker:
 
 ```bash
-#!/usr/bin/env bash
-while true; do
-  job=$(curl -s -H "x-bridge-secret: $BRIDGE_SECRET" $MOTION_URL/api/dispatch/bridge/next)
-  if [ "$(echo $job | jq -r '.id')" != "null" ]; then
-    result=$(echo "$job" | jq -r '.prompt' | claude --print)
-    curl -s -X POST -H "x-bridge-secret: $BRIDGE_SECRET" \
-      -H "Content-Type: application/json" \
-      -d "{\"result\":$(jq -Rs . <<<"$result")}" \
-      $MOTION_URL/api/dispatch/$(echo $job | jq -r '.id')/complete
-  fi
-  sleep 5
-done
+cd tools/bridge
+bash setup.sh
 ```
 
-3. Run it under launchd (macOS) or systemd (Linux) with KeepAlive.
+It will:
+- Prompt for your Motion Lite URL + generate a `BRIDGE_SECRET`
+- Test the connection
+- Optionally install a launchd job so the bridge auto-starts on login
 
-The full version of this in the original app is more sophisticated (timeouts, retry, tool forwarding for things like "open Obsidian note" and "speak via macOS say"), but the basic poll-loop above is enough to test the round trip.
+Then add the same `BRIDGE_SECRET` to your Motion Lite server's `.env.local` and restart it. Done.
+
+Full bridge docs (manual run, troubleshooting, security notes, customizing `claude --print` flags) → [`tools/bridge/README.md`](tools/bridge/README.md).
 
 ### To NOT use dispatch
 
