@@ -188,8 +188,8 @@ export function getInternalApiSecret(): string {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  // Local dev bypass — return user id=1 when BYPASS_AUTH is set
-  if (process.env.BYPASS_AUTH === 'true') {
+  // Local dev only — guarded against prod by NODE_ENV check; Phase 4 replaces this with a signed render token for Puppeteer.
+  if (process.env.BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
     const db = getDb()
     const user = db.prepare('SELECT * FROM users WHERE id = 1').get() as User | undefined
     if (user) return user

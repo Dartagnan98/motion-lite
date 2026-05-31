@@ -43,6 +43,14 @@ export async function POST(req: NextRequest) {
   if (body.workspace_id && !isWorkspaceMember(user.id, body.workspace_id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  // Default to the user's primary workspace. The db-layer fallback picks the
+  // lowest workspace id, which can land outside the user's memberships — the
+  // business then saves but is filtered out of the workspace-scoped GET.
+  if (!body.workspace_id) {
+    const wsId = getUserWorkspaces(user.id).map(w => w.id)[0]
+    if (!wsId) return NextResponse.json({ error: 'No workspace' }, { status: 400 })
+    body.workspace_id = wsId
+  }
   const business = createClientBusiness(body)
   return NextResponse.json({ business })
 }

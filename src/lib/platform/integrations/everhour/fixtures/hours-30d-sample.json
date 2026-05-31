@@ -1,0 +1,151 @@
+{
+  "periodStart": "2026-04-01",
+  "periodEnd": "2026-04-30",
+  "entries": [
+    {
+      "id": 100001,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-28",
+      "time": 5400,
+      "task": {
+        "id": "ev-task-001",
+        "name": "Homepage hero copy revision",
+        "projects": [{ "id": "ev-proj-100", "name": "Website Refresh — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100002,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-28",
+      "time": 3600,
+      "task": {
+        "id": "ev-task-002",
+        "name": "April blog post: Spring Dental Tips",
+        "projects": [{ "id": "ev-proj-101", "name": "SEO Content — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100003,
+      "user": { "id": 502, "name": "Team Member A" },
+      "date": "2026-04-25",
+      "time": 7200,
+      "task": {
+        "id": "ev-task-003",
+        "name": "Google Business Profile updates",
+        "projects": [{ "id": "ev-proj-101", "name": "SEO Content — Glenvalley Dental" }]
+      },
+      "comment": "Updated NAP + added Q&A responses"
+    },
+    {
+      "id": 100004,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-22",
+      "time": 10800,
+      "task": {
+        "id": "ev-task-004",
+        "name": "GSC impressions review + reporting",
+        "projects": [{ "id": "ev-proj-102", "name": "Monthly Reporting — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100005,
+      "user": { "id": 502, "name": "Team Member A" },
+      "date": "2026-04-18",
+      "time": 9000,
+      "task": {
+        "id": "ev-task-005",
+        "name": "Local citation building",
+        "projects": [{ "id": "ev-proj-101", "name": "SEO Content — Glenvalley Dental" }]
+      },
+      "comment": "Yelp, YellowPages, Healthgrades, Zocdoc, Google Maps"
+    },
+    {
+      "id": 100006,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-15",
+      "time": 14400,
+      "task": {
+        "id": "ev-task-006",
+        "name": "Core Web Vitals LCP fix — image lazy-load",
+        "projects": [{ "id": "ev-proj-100", "name": "Website Refresh — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100007,
+      "user": { "id": 503, "name": "Team Member B" },
+      "date": "2026-04-12",
+      "time": 10800,
+      "task": {
+        "id": "ev-task-007",
+        "name": "Gravity Forms contact form migration",
+        "projects": [{ "id": "ev-proj-100", "name": "Website Refresh — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100008,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-10",
+      "time": 5400,
+      "task": {
+        "id": "ev-task-008",
+        "name": "GA4 event tracking audit",
+        "projects": [{ "id": "ev-proj-102", "name": "Monthly Reporting — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100009,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-08",
+      "time": 7200,
+      "task": {
+        "id": "ev-task-009",
+        "name": "March retainer report write-up",
+        "projects": [{ "id": "ev-proj-102", "name": "Monthly Reporting — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100010,
+      "user": { "id": 502, "name": "Team Member A" },
+      "date": "2026-04-05",
+      "time": 5400,
+      "task": {
+        "id": "ev-task-010",
+        "name": "Keyword mapping refresh — cosmetic dentistry",
+        "projects": [{ "id": "ev-proj-101", "name": "SEO Content — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100011,
+      "user": { "id": 501, "name": "Will W." },
+      "date": "2026-04-03",
+      "time": 3600,
+      "task": {
+        "id": "ev-task-011",
+        "name": "Q2 kickoff call prep",
+        "projects": [{ "id": "ev-proj-102", "name": "Monthly Reporting — Glenvalley Dental" }]
+      },
+      "comment": null
+    },
+    {
+      "id": 100012,
+      "user": { "id": 503, "name": "Team Member B" },
+      "date": "2026-04-01",
+      "time": 3600,
+      "task": {
+        "id": "ev-task-012",
+        "name": "WordPress plugin updates + security patches",
+        "projects": [{ "id": "ev-proj-100", "name": "Website Refresh — Glenvalley Dental" }]
+      },
+      "comment": null
+    }
+  ],
+  "fetchedAt": "2026-05-01T00:10:00.000Z"
+}

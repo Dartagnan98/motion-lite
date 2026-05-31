@@ -37,7 +37,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Motion Lite" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
       </head>
-      <body className="antialiased">
+      <body className="antialiased text-[15px] md:text-base">
         <PwaBootstrap />
         <KeyboardShortcuts />
         <ShortcutsHelp />

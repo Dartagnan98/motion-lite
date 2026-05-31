@@ -249,6 +249,71 @@ Forked from a working internal CRM. The original is in production. This share is
 
 If you find bugs, the friend who shared this with you is the right person to ask.
 
+## Environment variables (production)
+
+Set these in `/opt/hiilite-platform/.env.local` (or whichever `EnvironmentFile`
+your systemd unit points at) **before first boot**. The two marked SESSION-CRITICAL
+have random / dev fallbacks if missing — leaving them unset on a VPS means a
+restart silently invalidates every session and every stored OAuth token, because
+the keys regenerate. Set them once, then never rotate without a planned migration.
+
+### Required — set or the app misbehaves
+
+| Var | Purpose | Notes |
+|---|---|---|
+| `CRM_ENCRYPTION_KEY` | **SESSION-CRITICAL.** AES-256-GCM key for all encrypted OAuth tokens (`platform_oauth_tokens`, `platform_tenant_credentials`, Stripe/Square secrets). | 32+ chars random. Hashed to 32 bytes on use. **No random default — it falls back to a hardcoded dev key with a warning, and every encrypted token written under one key is undecryptable under another.** Generate: `openssl rand -hex 32`. |
+| `AUTH_SECRET` | **SESSION-CRITICAL.** HMAC key for the MS365 OAuth state cookie (`packStateCookie` / `unpackStateCookie`). | 32+ chars random. Falls back to `CRM_ENCRYPTION_KEY`, then to `'dev-insecure-state-secret'`. Generate: `openssl rand -hex 32`. Session cookies themselves are server-side UUIDs and don't depend on this — they survive a restart. |
+| `INTERNAL_API_SECRET` | Token the in-process dispatcher uses to call its own API. | If unset, a random secret is generated on boot and persisted to `~/code/store/.internal-api-secret`. Persisting via env is cleaner on a VPS. |
+| `ANTHROPIC_API_KEY` | All AI features (meeting notes, agent dispatch, AI autoreply, AI features in reports). | From console.anthropic.com. |
+
+### Sign-up control
+
+| Var | Purpose | Default |
+|---|---|---|
+| `ALLOW_SIGNUP` | `'1'` to leave `/api/auth/login {signup:true}` open. `'0'` locks signup — only existing users can log in. | `'0'` (locked). **Bootstrap exception:** if zero users exist, the first signup is allowed regardless. |
+
+### Backups (used by `scripts/backup-db.mjs`)
+
+| Var | Purpose | Default |
+|---|---|---|
+| `HIILITE_DB_PATH` | Path to live SQLite DB. | `~/code/store/motion.db` (relative to the repo, two levels up). |
+| `HIILITE_BACKUP_DIR` | Where nightly backups land. | `~/code/backups/nightly` |
+| `HIILITE_BACKUP_RETENTION_DAYS` | Prune `motion-*.db` and `env.local.backup-*` older than this. | `14` |
+| `HIILITE_OFFSITE_CMD` | If set, executed after a successful backup as `$CMD <backup-file>`. Wire to rclone / `aws s3 cp` / whatever. | unset |
+
+### OAuth integrations (set per provider you actually use)
+
+| Var | Provider |
+|---|---|
+| `MS365_CLIENT_ID`, `MS365_CLIENT_SECRET`, `MS365_TENANT_ID`, `MS365_REDIRECT_URI` | Microsoft Graph (calendar, mail) |
+| `INTUIT_CLIENT_ID`, `INTUIT_CLIENT_SECRET`, `INTUIT_OAUTH_ENVIRONMENT`, `INTUIT_REDIRECT_URI` | QuickBooks Online |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Google sign-in + Ads + Search Console |
+| `GOOGLE_ADS_DEVELOPER_TOKEN` | Google Ads API |
+| `META_APP_ID`, `META_APP_SECRET` | Meta Ads |
+| `BRIDGE_SECRET` | Shared secret between the cloud app and the local Mac dispatch bridge |
+
+### Other operational vars
+
+| Var | Purpose |
+|---|---|
+| `CTRL_MOTION_API_KEY` | Bearer token for the MCP server / external service access. Format `ctrlm_…`. |
+| `SENDGRID_API_KEY` | Optional email sender (also configurable in DB settings). |
+| `VAULT_ROOT` | Override the on-disk markdown vault root. Defaults to `$HOME/agent-session/vault`. |
+| `BYPASS_AUTH` | Dev-only convenience — auto-login as user id 1. **Hard-disabled in `NODE_ENV=production`.** Never set this on the VPS. |
+
+### Production checklist before first boot
+
+```bash
+openssl rand -hex 32   # -> CRM_ENCRYPTION_KEY
+openssl rand -hex 32   # -> AUTH_SECRET
+openssl rand -hex 32   # -> INTERNAL_API_SECRET
+openssl rand -hex 32   # -> BRIDGE_SECRET (if using dispatch bridge)
+```
+
+Drop those into `.env.local`, `chmod 600 .env.local`, then start the service.
+Reboot the service once after the first sign-up to confirm the session
+persists across restarts (it should — sessions are server-side).
+
 ## License
 
 MIT. Use freely.

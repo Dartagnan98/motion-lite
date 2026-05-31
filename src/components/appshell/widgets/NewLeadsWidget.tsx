@@ -54,7 +54,7 @@ export function NewLeadsWidget() {
           New leads
         </span>
         <Link
-          href="/crm/reports/lead-ads"
+          href="/leads"
           style={{ ...mono, fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none' }}
         >
           All →

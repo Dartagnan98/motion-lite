@@ -1,0 +1,136 @@
+{
+  "_meta": {
+    "comment": "Synthetic GA4 payload modeled after a small dental practice's last-30-day window. Values redacted; structure matches what analyticsdata.googleapis.com/v1beta/properties/{id}:runReport returns for the four call shapes fetchSnapshot issues (summary / daily / top-pages / top-sources). qa-engineer can use this as the input to ga4/normalize.ts.",
+    "propertyId": "987654321",
+    "periodStart": "2026-04-08",
+    "periodEnd": "2026-05-07",
+    "fetchedAt": "2026-05-08T12:00:00.000Z"
+  },
+  "propertyId": "987654321",
+  "periodStart": "2026-04-08",
+  "periodEnd": "2026-05-07",
+  "fetchedAt": "2026-05-08T12:00:00.000Z",
+  "summary": {
+    "dimensionHeaders": [],
+    "metricHeaders": [
+      { "name": "totalUsers", "type": "TYPE_INTEGER" },
+      { "name": "sessions", "type": "TYPE_INTEGER" },
+      { "name": "screenPageViews", "type": "TYPE_INTEGER" },
+      { "name": "engagementRate", "type": "TYPE_FLOAT" },
+      { "name": "bounceRate", "type": "TYPE_FLOAT" }
+    ],
+    "rows": [
+      {
+        "dimensionValues": [],
+        "metricValues": [
+          { "value": "3842" },
+          { "value": "4615" },
+          { "value": "12480" },
+          { "value": "0.6312" },
+          { "value": "0.3688" }
+        ]
+      }
+    ],
+    "rowCount": 1,
+    "metadata": {
+      "currencyCode": "CAD",
+      "timeZone": "America/Toronto"
+    }
+  },
+  "daily": {
+    "dimensionHeaders": [{ "name": "date" }],
+    "metricHeaders": [
+      { "name": "totalUsers", "type": "TYPE_INTEGER" },
+      { "name": "sessions", "type": "TYPE_INTEGER" }
+    ],
+    "rows": [
+      { "dimensionValues": [{ "value": "20260408" }], "metricValues": [{ "value": "98" }, { "value": "119" }] },
+      { "dimensionValues": [{ "value": "20260409" }], "metricValues": [{ "value": "141" }, { "value": "172" }] },
+      { "dimensionValues": [{ "value": "20260410" }], "metricValues": [{ "value": "128" }, { "value": "156" }] },
+      { "dimensionValues": [{ "value": "20260411" }], "metricValues": [{ "value": "82" }, { "value": "98" }] },
+      { "dimensionValues": [{ "value": "20260412" }], "metricValues": [{ "value": "67" }, { "value": "78" }] },
+      { "dimensionValues": [{ "value": "20260413" }], "metricValues": [{ "value": "155" }, { "value": "187" }] },
+      { "dimensionValues": [{ "value": "20260414" }], "metricValues": [{ "value": "168" }, { "value": "204" }] },
+      { "dimensionValues": [{ "value": "20260415" }], "metricValues": [{ "value": "152" }, { "value": "185" }] },
+      { "dimensionValues": [{ "value": "20260416" }], "metricValues": [{ "value": "139" }, { "value": "168" }] },
+      { "dimensionValues": [{ "value": "20260417" }], "metricValues": [{ "value": "127" }, { "value": "153" }] },
+      { "dimensionValues": [{ "value": "20260418" }], "metricValues": [{ "value": "91" }, { "value": "108" }] },
+      { "dimensionValues": [{ "value": "20260419" }], "metricValues": [{ "value": "71" }, { "value": "84" }] },
+      { "dimensionValues": [{ "value": "20260420" }], "metricValues": [{ "value": "162" }, { "value": "197" }] },
+      { "dimensionValues": [{ "value": "20260421" }], "metricValues": [{ "value": "174" }, { "value": "213" }] },
+      { "dimensionValues": [{ "value": "20260422" }], "metricValues": [{ "value": "159" }, { "value": "194" }] },
+      { "dimensionValues": [{ "value": "20260423" }], "metricValues": [{ "value": "143" }, { "value": "174" }] },
+      { "dimensionValues": [{ "value": "20260424" }], "metricValues": [{ "value": "131" }, { "value": "159" }] },
+      { "dimensionValues": [{ "value": "20260425" }], "metricValues": [{ "value": "96" }, { "value": "114" }] },
+      { "dimensionValues": [{ "value": "20260426" }], "metricValues": [{ "value": "74" }, { "value": "87" }] },
+      { "dimensionValues": [{ "value": "20260427" }], "metricValues": [{ "value": "178" }, { "value": "217" }] },
+      { "dimensionValues": [{ "value": "20260428" }], "metricValues": [{ "value": "187" }, { "value": "229" }] },
+      { "dimensionValues": [{ "value": "20260429" }], "metricValues": [{ "value": "165" }, { "value": "201" }] },
+      { "dimensionValues": [{ "value": "20260430" }], "metricValues": [{ "value": "148" }, { "value": "180" }] },
+      { "dimensionValues": [{ "value": "20260501" }], "metricValues": [{ "value": "136" }, { "value": "165" }] },
+      { "dimensionValues": [{ "value": "20260502" }], "metricValues": [{ "value": "103" }, { "value": "124" }] },
+      { "dimensionValues": [{ "value": "20260503" }], "metricValues": [{ "value": "79" }, { "value": "93" }] },
+      { "dimensionValues": [{ "value": "20260504" }], "metricValues": [{ "value": "183" }, { "value": "224" }] },
+      { "dimensionValues": [{ "value": "20260505" }], "metricValues": [{ "value": "196" }, { "value": "241" }] },
+      { "dimensionValues": [{ "value": "20260506" }], "metricValues": [{ "value": "174" }, { "value": "213" }] },
+      { "dimensionValues": [{ "value": "20260507" }], "metricValues": [{ "value": "156" }, { "value": "190" }] }
+    ],
+    "rowCount": 30,
+    "metadata": { "timeZone": "America/Toronto" }
+  },
+  "topPages": {
+    "dimensionHeaders": [{ "name": "pagePath" }],
+    "metricHeaders": [
+      { "name": "screenPageViews", "type": "TYPE_INTEGER" },
+      { "name": "sessions", "type": "TYPE_INTEGER" }
+    ],
+    "rows": [
+      { "dimensionValues": [{ "value": "/" }], "metricValues": [{ "value": "3241" }, { "value": "1587" }] },
+      { "dimensionValues": [{ "value": "/services" }], "metricValues": [{ "value": "1842" }, { "value": "924" }] },
+      { "dimensionValues": [{ "value": "/cosmetic-dentistry" }], "metricValues": [{ "value": "1124" }, { "value": "563" }] },
+      { "dimensionValues": [{ "value": "/dental-implants" }], "metricValues": [{ "value": "987" }, { "value": "482" }] },
+      { "dimensionValues": [{ "value": "/about-us" }], "metricValues": [{ "value": "762" }, { "value": "387" }] },
+      { "dimensionValues": [{ "value": "/contact" }], "metricValues": [{ "value": "698" }, { "value": "347" }] },
+      { "dimensionValues": [{ "value": "/book-appointment" }], "metricValues": [{ "value": "621" }, { "value": "312" }] },
+      { "dimensionValues": [{ "value": "/emergency-dentist" }], "metricValues": [{ "value": "584" }, { "value": "291" }] },
+      { "dimensionValues": [{ "value": "/blog/teeth-whitening-guide" }], "metricValues": [{ "value": "521" }, { "value": "264" }] },
+      { "dimensionValues": [{ "value": "/our-team" }], "metricValues": [{ "value": "478" }, { "value": "239" }] },
+      { "dimensionValues": [{ "value": "/invisalign" }], "metricValues": [{ "value": "432" }, { "value": "214" }] },
+      { "dimensionValues": [{ "value": "/blog/dental-anxiety" }], "metricValues": [{ "value": "387" }, { "value": "194" }] },
+      { "dimensionValues": [{ "value": "/dental-crowns" }], "metricValues": [{ "value": "342" }, { "value": "171" }] },
+      { "dimensionValues": [{ "value": "/pediatric-dentistry" }], "metricValues": [{ "value": "312" }, { "value": "156" }] },
+      { "dimensionValues": [{ "value": "/new-patients" }], "metricValues": [{ "value": "287" }, { "value": "143" }] },
+      { "dimensionValues": [{ "value": "/dental-insurance" }], "metricValues": [{ "value": "261" }, { "value": "130" }] },
+      { "dimensionValues": [{ "value": "/blog/oral-hygiene-tips" }], "metricValues": [{ "value": "238" }, { "value": "119" }] },
+      { "dimensionValues": [{ "value": "/financing" }], "metricValues": [{ "value": "214" }, { "value": "107" }] },
+      { "dimensionValues": [{ "value": "/blog/wisdom-teeth" }], "metricValues": [{ "value": "198" }, { "value": "98" }] },
+      { "dimensionValues": [{ "value": "/gum-disease" }], "metricValues": [{ "value": "178" }, { "value": "89" }] },
+      { "dimensionValues": [{ "value": "/sedation-dentistry" }], "metricValues": [{ "value": "158" }, { "value": "79" }] },
+      { "dimensionValues": [{ "value": "/dentures" }], "metricValues": [{ "value": "142" }, { "value": "71" }] },
+      { "dimensionValues": [{ "value": "/blog/cavity-prevention" }], "metricValues": [{ "value": "128" }, { "value": "64" }] },
+      { "dimensionValues": [{ "value": "/reviews" }], "metricValues": [{ "value": "114" }, { "value": "57" }] },
+      { "dimensionValues": [{ "value": "/blog/root-canal-myths" }], "metricValues": [{ "value": "98" }, { "value": "49" }] }
+    ],
+    "rowCount": 25,
+    "metadata": { "timeZone": "America/Toronto" }
+  },
+  "topSources": {
+    "dimensionHeaders": [{ "name": "sessionSourceMedium" }],
+    "metricHeaders": [
+      { "name": "sessions", "type": "TYPE_INTEGER" },
+      { "name": "totalUsers", "type": "TYPE_INTEGER" }
+    ],
+    "rows": [
+      { "dimensionValues": [{ "value": "google / organic" }], "metricValues": [{ "value": "2341" }, { "value": "1984" }] },
+      { "dimensionValues": [{ "value": "(direct) / (none)" }], "metricValues": [{ "value": "874" }, { "value": "741" }] },
+      { "dimensionValues": [{ "value": "google / cpc" }], "metricValues": [{ "value": "612" }, { "value": "521" }] },
+      { "dimensionValues": [{ "value": "facebook / social" }], "metricValues": [{ "value": "287" }, { "value": "243" }] },
+      { "dimensionValues": [{ "value": "bing / organic" }], "metricValues": [{ "value": "198" }, { "value": "168" }] },
+      { "dimensionValues": [{ "value": "instagram / social" }], "metricValues": [{ "value": "142" }, { "value": "121" }] },
+      { "dimensionValues": [{ "value": "email / newsletter" }], "metricValues": [{ "value": "98" }, { "value": "84" }] },
+      { "dimensionValues": [{ "value": "google / referral" }], "metricValues": [{ "value": "63" }, { "value": "53" }] }
+    ],
+    "rowCount": 8,
+    "metadata": { "timeZone": "America/Toronto" }
+  }
+}

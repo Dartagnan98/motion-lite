@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getClientProfiles, getClientProfile, createClientProfile, updateClientProfile, deleteClientProfile, getClientBusinesses, getFolderContents, getUserWorkspaces, isWorkspaceMember, getDb } from '@/lib/db'
+import { getClientProfiles, getClientProfile, createClientProfile, updateClientProfile, deleteClientProfile, getClientBusinesses, getFolderContents, getUserWorkspaces, isWorkspaceMember, getDb, createFolder } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 
 function resolveId(table: string, param: string | null): number | null {
   if (!param) return null
   const num = Number(param)
   if (!isNaN(num) && num > 0) return num
-  const row = getDb().prepare(`SELECT id FROM ${table} WHERE public_id = ?`).get(param) as { id: number } | undefined
-  return row?.id || null
+  // Try public_id first (universal), then slug (some tables have it, e.g. client_profiles)
+  const byPublic = getDb().prepare(`SELECT id FROM ${table} WHERE public_id = ?`).get(param) as { id: number } | undefined
+  if (byPublic?.id) return byPublic.id
+  try {
+    const bySlug = getDb().prepare(`SELECT id FROM ${table} WHERE slug = ?`).get(param) as { id: number } | undefined
+    return bySlug?.id || null
+  } catch {
+    // table has no slug column — fall through
+    return null
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -20,6 +28,14 @@ export async function GET(req: NextRequest) {
     // Check user has access to this client's workspace
     if (profile.workspace_id && !isWorkspaceMember(user.id, profile.workspace_id)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    // Bootstrap a folder for the client on first access — the Assets tab is
+    // gated on folder_id, and historical clients (Glenvalley/Advance/etc.) were
+    // created before folders were auto-provisioned, leaving the tab empty.
+    if (!profile.folder_id && profile.workspace_id) {
+      const folder = createFolder(profile.workspace_id, profile.name, profile.avatar_color || undefined)
+      updateClientProfile(profile.id, { folder_id: folder.id })
+      profile.folder_id = folder.id
     }
     const contents = req.nextUrl.searchParams.get('contents') === '1' && profile.folder_id
       ? getFolderContents(profile.folder_id)
@@ -41,7 +57,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-  const profile = createClientProfile({ ...body, slug })
+  // Default workspace_id to the user's primary workspace when the form doesn't
+  // send one — otherwise the new client gets workspace_id=NULL and is invisible
+  // in /clients (which filters by the user's workspaces).
+  const wsIds = getUserWorkspaces(user.id).map(w => w.id)
+  const workspace_id = body.workspace_id ?? wsIds[0] ?? null
+  const profile = createClientProfile({ ...body, slug, workspace_id })
+  // createClientProfile only inserts a fixed column set — persist website (and
+  // other known fields the form may send) so the domain is kept on the client.
+  if (profile && typeof body.website === 'string' && body.website.trim()) {
+    updateClientProfile(profile.id, { website: body.website.trim() })
+    profile.website = body.website.trim()
+  }
   return NextResponse.json({ profile })
 }
 

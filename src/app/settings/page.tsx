@@ -16,6 +16,17 @@ import { PRIORITY_LABELS } from '@/lib/task-constants'
 interface GoogleAccount { id: number; email: string }
 interface GoogleCalendar { id: string; account_id: number; name: string; color: string; visible: number; use_for_conflicts: number; is_primary: number; default_busy_status?: string }
 
+// MS365 account shape — same calendar rows as Google (field-for-field match per backend contract)
+interface Ms365Account {
+  id: number
+  display_email: string
+  last_synced_at: string | null
+  last_sync_error: string | null
+  connected_at: string | null
+}
+// MS365 calendar fields match GoogleCalendar except no use_for_conflicts (default_busy_status is canonical)
+interface Ms365Calendar { id: string; account_id: number; name: string; color: string; visible: number; is_primary: number; default_busy_status: string }
+
 export default function SettingsPage() {
   return (
     <Suspense fallback={<div className="flex h-full items-center justify-center text-text-dim text-sm">Loading...</div>}>
@@ -32,12 +43,17 @@ function SettingsPageInner() {
   const [saveError, setSaveError] = useState('')
   const [accounts, setAccounts] = useState<GoogleAccount[]>([])
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([])
+  const [ms365Accounts, setMs365Accounts] = useState<Ms365Account[]>([])
+  const [ms365Calendars, setMs365Calendars] = useState<Ms365Calendar[]>([])
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(setSettings).catch(() => {})
     // Load Google accounts and calendars for the calendar section
     fetch('/api/google/accounts').then(r => r.json()).then(d => setAccounts(Array.isArray(d) ? d : [])).catch(() => setAccounts([]))
     fetch('/api/google/calendars').then(r => r.json()).then(d => setCalendars(Array.isArray(d) ? d : [])).catch(() => setCalendars([]))
+    // Load MS365 accounts and calendars in parallel with Google
+    fetch('/api/ms365/accounts').then(r => r.json()).then(d => setMs365Accounts(Array.isArray(d?.accounts) ? d.accounts : [])).catch(() => setMs365Accounts([]))
+    fetch('/api/ms365/calendars').then(r => r.json()).then(d => setMs365Calendars(Array.isArray(d?.calendars) ? d.calendars : [])).catch(() => setMs365Calendars([]))
   }, [])
 
   const updateSetting = useCallback(async (key: string, value: unknown) => {
@@ -74,7 +90,11 @@ function SettingsPageInner() {
 
         {section === 'workspace' && <WorkspaceSettingsSection />}
         {section === 'calendars' && (
-          <CalendarsSection accounts={accounts} calendars={calendars} setAccounts={setAccounts} setCalendars={setCalendars} />
+          <CalendarsSection
+            accounts={accounts} calendars={calendars} setAccounts={setAccounts} setCalendars={setCalendars}
+            ms365Accounts={ms365Accounts} ms365Calendars={ms365Calendars}
+            setMs365Accounts={setMs365Accounts} setMs365Calendars={setMs365Calendars}
+          />
         )}
         {section === 'auto-scheduling' && (
           <AutoSchedulingSection settings={settings} update={updateSetting} onNavigate={setSection} />
@@ -204,13 +224,117 @@ function SectionDivider() {
 
 // ─── Section Components ───
 
-function CalendarsSection({ accounts, calendars, setAccounts, setCalendars }: {
-  accounts: GoogleAccount[]; calendars: GoogleCalendar[];
-  setAccounts: (a: GoogleAccount[]) => void; setCalendars: (c: GoogleCalendar[]) => void
-}) {
-  const hasGoogle = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || accounts.length > 0
+// ─── Shared calendar row (used by both Google and MS365 blocks) ───────────────
 
-  async function disconnect(id: number) {
+type AnyCalendar = {
+  id: string
+  account_id: number
+  name: string
+  color: string
+  visible: number
+  is_primary: number
+  default_busy_status?: string
+  use_for_conflicts?: number
+}
+
+function CalendarRow({
+  cal,
+  onToggleVisible,
+  onToggleBusy,
+  onSetPrimary,
+}: {
+  cal: AnyCalendar
+  onToggleVisible: (id: string, visible: boolean) => void
+  onToggleBusy: (id: string, status: string) => void
+  onSetPrimary: (id: string) => void
+}) {
+  // Google exposes use_for_conflicts; MS365 relies solely on default_busy_status
+  const isFree =
+    (cal.use_for_conflicts !== undefined ? cal.use_for_conflicts === 0 : false) ||
+    (cal.default_busy_status ?? 'busy') === 'free'
+
+  return (
+    <div className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-hover/50 transition-colors">
+      <input
+        type="checkbox"
+        checked={cal.visible === 1}
+        onChange={e => onToggleVisible(cal.id, e.target.checked)}
+        className="accent-accent cursor-pointer shrink-0"
+      />
+      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cal.color }} />
+      <span className="text-[13px] text-text flex-1 truncate">{cal.name}</span>
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Busy/Free toggle pill */}
+        <button
+          onClick={() => onToggleBusy(cal.id, isFree ? 'busy' : 'free')}
+          className="relative w-[72px] h-[26px] rounded-full border transition-colors"
+          style={{
+            background: isFree ? 'rgba(0, 230, 118, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+            borderColor: isFree ? 'rgba(0, 230, 118, 0.25)' : 'var(--border)',
+          }}
+          title="Toggle whether events from this calendar block your schedule"
+        >
+          <span
+            className="absolute top-[3px] w-[20px] h-[20px] rounded-full transition-all duration-200"
+            style={{
+              left: isFree ? 'calc(100% - 23px)' : '3px',
+              background: isFree ? '#00e676' : 'var(--text-dim)',
+            }}
+          />
+          <span
+            className={`absolute text-[9px] font-semibold uppercase tracking-wider ${isFree ? 'left-2' : 'right-2'} top-1/2 -translate-y-1/2`}
+            style={{ color: isFree ? '#00e676' : 'var(--text-dim)' }}
+          >
+            {isFree ? 'Free' : 'Busy'}
+          </span>
+        </button>
+        {cal.is_primary === 1 ? (
+          <span className="text-[10px] text-accent-text bg-accent/10 border border-accent/20 px-2 py-0.5 rounded font-medium w-[60px] text-center">Primary</span>
+        ) : (
+          <button
+            onClick={() => onSetPrimary(cal.id)}
+            className="text-[10px] text-text-dim hover:text-accent-text px-2 py-0.5 rounded border border-border hover:border-accent/30 transition-colors w-[60px] text-center"
+          >
+            Set primary
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── CalendarsSection ─────────────────────────────────────────────────────────
+
+function CalendarsSection({
+  accounts, calendars, setAccounts, setCalendars,
+  ms365Accounts, ms365Calendars, setMs365Accounts, setMs365Calendars,
+}: {
+  accounts: GoogleAccount[]; calendars: GoogleCalendar[]
+  setAccounts: (a: GoogleAccount[]) => void; setCalendars: (c: GoogleCalendar[]) => void
+  ms365Accounts: Ms365Account[]; ms365Calendars: Ms365Calendar[]
+  setMs365Accounts: (a: Ms365Account[]) => void; setMs365Calendars: (c: Ms365Calendar[]) => void
+}) {
+  const searchParams = useSearchParams()
+  const [oauthBanner, setOauthBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [ms365ConfigError, setMs365ConfigError] = useState(false)
+
+  // Read post-OAuth query params once on mount
+  useEffect(() => {
+    const connected = searchParams.get('connected')
+    const error = searchParams.get('error')
+    if (connected === 'ms365') {
+      setOauthBanner({ type: 'success', message: 'Microsoft 365 calendar connected.' })
+      setTimeout(() => setOauthBanner(null), 5000)
+    } else if (error?.startsWith('ms365:')) {
+      const reason = error.slice('ms365:'.length)
+      setOauthBanner({ type: 'error', message: `Microsoft 365 connection failed: ${reason}` })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Google handlers ──
+
+  async function googleDisconnect(id: number) {
     await fetch('/api/google/disconnect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -220,7 +344,7 @@ function CalendarsSection({ accounts, calendars, setAccounts, setCalendars }: {
     setCalendars(calendars.filter(c => c.account_id !== id))
   }
 
-  async function toggleVisibility(calId: string, visible: boolean) {
+  async function googleToggleVisible(calId: string, visible: boolean) {
     setCalendars(calendars.map(c => c.id === calId ? { ...c, visible: visible ? 1 : 0 } : c))
     await fetch('/api/google/calendars/toggle', {
       method: 'POST',
@@ -229,25 +353,19 @@ function CalendarsSection({ accounts, calendars, setAccounts, setCalendars }: {
     })
   }
 
-  async function toggleBusyStatus(calId: string, status: string) {
+  async function googleToggleBusy(calId: string, status: string) {
     const useForConflicts = status !== 'free'
     setCalendars(calendars.map(c => c.id === calId ? {
-      ...c,
-      default_busy_status: status,
-      use_for_conflicts: useForConflicts ? 1 : 0,
+      ...c, default_busy_status: status, use_for_conflicts: useForConflicts ? 1 : 0,
     } : c))
     await fetch('/api/google/calendars/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        calendarId: calId,
-        default_busy_status: status,
-        use_for_conflicts: useForConflicts,
-      }),
+      body: JSON.stringify({ calendarId: calId, default_busy_status: status, use_for_conflicts: useForConflicts }),
     })
   }
 
-  async function setPrimary(calId: string) {
+  async function googleSetPrimary(calId: string) {
     setCalendars(calendars.map(c => ({ ...c, is_primary: c.id === calId ? 1 : 0 })))
     await fetch('/api/google/calendars/primary', {
       method: 'POST',
@@ -256,100 +374,241 @@ function CalendarsSection({ accounts, calendars, setAccounts, setCalendars }: {
     })
   }
 
-  return (
-    <div className="space-y-4">
-      <p className="text-[13px] text-text-dim">Connect your Google Calendar to see events alongside tasks and enable auto-scheduling around your real schedule.</p>
+  // ── MS365 handlers ──
 
-      {accounts.length === 0 ? (
-        <a
-          href="/api/google/auth"
-          className="settings-connect-btn"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Connect Google Calendar
-        </a>
-      ) : (
-        <div className="space-y-3">
-          {accounts.map(a => (
-            <div key={a.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue/20 text-blue text-xs font-bold">G</div>
-                <div>
-                  <div className="text-[13px] text-text">{a.email}</div>
-                  <div className="text-[13px] text-text-dim">Connected</div>
-                </div>
-              </div>
-              <button onClick={() => disconnect(a.id)} className="text-[13px] text-red hover:underline">Disconnect</button>
-            </div>
-          ))}
-          <a href="/api/google/auth" className="text-[13px] text-accent-text hover:underline">+ Add another account</a>
+  async function ms365Disconnect(id: number) {
+    await fetch(`/api/ms365/accounts?id=${id}`, { method: 'DELETE' })
+    setMs365Accounts(ms365Accounts.filter(a => a.id !== id))
+    setMs365Calendars(ms365Calendars.filter(c => c.account_id !== id))
+  }
+
+  async function ms365ToggleVisible(calId: string, visible: boolean) {
+    setMs365Calendars(ms365Calendars.map(c => c.id === calId ? { ...c, visible: visible ? 1 : 0 } : c))
+    await fetch('/api/ms365/calendars/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calendarId: calId, visible }),
+    })
+  }
+
+  async function ms365ToggleBusy(calId: string, status: string) {
+    setMs365Calendars(ms365Calendars.map(c => c.id === calId ? { ...c, default_busy_status: status } : c))
+    await fetch('/api/ms365/calendars/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calendarId: calId, default_busy_status: status }),
+    })
+  }
+
+  async function ms365SetPrimary(calId: string) {
+    setMs365Calendars(ms365Calendars.map(c => ({ ...c, is_primary: c.id === calId ? 1 : 0 })))
+    await fetch('/api/ms365/calendars/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calendarId: calId, set_primary: true }),
+    })
+  }
+
+  // Connect MS365: navigate directly. If MS365_CLIENT_ID is not configured the
+  // backend returns 503 JSON instead of a redirect — that will appear in the URL
+  // bar as raw JSON, which is acceptable for internal beta (William is the one
+  // setting up the Azure app). The ms365ConfigError inline banner below handles
+  // the case where a preflight 503 is detected.
+  async function connectMs365() {
+    setMs365ConfigError(false)
+    // Preflight to check for 503 before navigating (avoids JSON in URL bar)
+    try {
+      const res = await fetch('/api/ms365/auth', { redirect: 'manual' })
+      if (res.status === 503 || res.status === 0) {
+        setMs365ConfigError(true)
+        return
+      }
+    } catch {
+      // Network error — let the navigation attempt surface the error naturally
+    }
+    window.location.href = '/api/ms365/auth'
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── OAuth result banner ── */}
+      {oauthBanner && (
+        <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-[13px] ${
+          oauthBanner.type === 'success'
+            ? 'border-green/30 bg-green/10 text-green'
+            : 'border-red/30 bg-red/10 text-red'
+        }`}>
+          <span>{oauthBanner.message}</span>
+          <button onClick={() => setOauthBanner(null)} className="opacity-60 hover:opacity-100 shrink-0">
+            <IconX size={14} />
+          </button>
         </div>
       )}
 
-      {calendars.length > 0 && (
-        <>
-          <SectionDivider />
-          <h3 className="text-[13px] font-medium text-text">Calendars</h3>
-          <p className="text-[13px] text-text-dim mb-2">Toggle visibility and set a primary calendar for writing new events.</p>
-          <div className="space-y-0.5">
-            {calendars.map(c => {
-              const isFree = c.use_for_conflicts === 0 || (c.default_busy_status || 'busy') === 'free'
-              return (
-                <div key={c.id} className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-hover/50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={c.visible === 1}
-                    onChange={e => toggleVisibility(c.id, e.target.checked)}
-                    className="accent-accent cursor-pointer shrink-0"
-                  />
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.color }} />
-                  <span className="text-[13px] text-text flex-1 truncate">{c.name}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Busy/Free toggle pill */}
-                    <button
-                      onClick={() => toggleBusyStatus(c.id, isFree ? 'busy' : 'free')}
-                      className="relative w-[72px] h-[26px] rounded-full border transition-colors"
-                      style={{
-                        background: isFree ? 'rgba(0, 230, 118, 0.12)' : 'rgba(255, 255, 255, 0.06)',
-                        borderColor: isFree ? 'rgba(0, 230, 118, 0.25)' : 'var(--border)',
-                      }}
-                      title="Toggle whether events from this calendar block your schedule"
-                    >
-                      <span
-                        className="absolute top-[3px] w-[20px] h-[20px] rounded-full transition-all duration-200"
-                        style={{
-                          left: isFree ? 'calc(100% - 23px)' : '3px',
-                          background: isFree ? '#00e676' : 'var(--text-dim)',
-                        }}
-                      />
-                      <span className={`absolute text-[9px] font-semibold uppercase tracking-wider ${isFree ? 'left-2' : 'right-2'} top-1/2 -translate-y-1/2`}
-                        style={{ color: isFree ? '#00e676' : 'var(--text-dim)' }}
-                      >
-                        {isFree ? 'Free' : 'Busy'}
-                      </span>
-                    </button>
-                    {c.is_primary === 1 ? (
-                      <span className="text-[10px] text-accent-text bg-accent/10 border border-accent/20 px-2 py-0.5 rounded font-medium w-[60px] text-center">Primary</span>
-                    ) : (
-                      <button
-                        onClick={() => setPrimary(c.id)}
-                        className="text-[10px] text-text-dim hover:text-accent-text px-2 py-0.5 rounded border border-border hover:border-accent/30 transition-colors w-[60px] text-center"
-                      >
-                        Set primary
-                      </button>
-                    )}
+      {/* ══════════════════════════════════════════════
+          GOOGLE CALENDAR PROVIDER CARD
+      ══════════════════════════════════════════════ */}
+      <div className="rounded-xl border border-border p-4 space-y-4">
+        {/* Provider header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            <span className="text-[14px] font-semibold text-text">Google Calendar</span>
+          </div>
+          {accounts.length > 0 && (
+            <a href="/api/google/auth" className="text-[12px] text-accent-text hover:underline">+ Add account</a>
+          )}
+        </div>
+
+        <p className="text-[13px] text-text-dim">Connect Google Calendar to see events alongside tasks and enable auto-scheduling.</p>
+
+        {accounts.length === 0 ? (
+          <a href="/api/google/auth" className="settings-connect-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Connect Google Calendar
+          </a>
+        ) : (
+          <div className="space-y-2">
+            {accounts.map(a => (
+              <div key={a.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue/20 text-blue text-xs font-bold">G</div>
+                  <div>
+                    <div className="text-[13px] text-text">{a.email}</div>
+                    <div className="text-[13px] text-text-dim">Connected</div>
                   </div>
+                </div>
+                <button onClick={() => googleDisconnect(a.id)} className="text-[13px] text-red hover:underline">Disconnect</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {calendars.length > 0 && (
+          <>
+            <div className="border-t border-border pt-3">
+              <h3 className="text-[13px] font-medium text-text mb-1">Calendars</h3>
+              <p className="text-[13px] text-text-dim mb-2">Toggle visibility and set a primary calendar for writing new events.</p>
+              <div className="space-y-0.5">
+                {calendars.map(c => (
+                  <CalendarRow
+                    key={c.id}
+                    cal={c}
+                    onToggleVisible={googleToggleVisible}
+                    onToggleBusy={googleToggleBusy}
+                    onSetPrimary={googleSetPrimary}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════
+          MICROSOFT 365 PROVIDER CARD
+      ══════════════════════════════════════════════ */}
+      <div className="rounded-xl border border-border p-4 space-y-4">
+        {/* Provider header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {/* Microsoft squares logo — inline, no external asset */}
+            <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+              <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+              <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+            </svg>
+            <span className="text-[14px] font-semibold text-text">Microsoft 365</span>
+            <span className="text-[10px] font-medium text-text-dim bg-border px-1.5 py-0.5 rounded">MS</span>
+          </div>
+          {ms365Accounts.length > 0 && (
+            <button onClick={connectMs365} className="text-[12px] text-accent-text hover:underline">+ Add account</button>
+          )}
+        </div>
+
+        <p className="text-[13px] text-text-dim">Connect Microsoft 365 (Outlook) to sync your work calendar alongside tasks.</p>
+
+        {/* Env-misconfigured inline note */}
+        {ms365ConfigError && (
+          <div className="flex items-start gap-2 rounded-lg border border-yellow/30 bg-yellow/10 px-3 py-2.5 text-[13px] text-yellow">
+            <span>Microsoft 365 isn&apos;t configured yet — see Azure AD setup in docs.</span>
+            <button onClick={() => setMs365ConfigError(false)} className="opacity-60 hover:opacity-100 shrink-0 mt-0.5">
+              <IconX size={13} />
+            </button>
+          </div>
+        )}
+
+        {ms365Accounts.length === 0 ? (
+          <button onClick={connectMs365} className="settings-connect-btn">
+            <svg width="16" height="16" viewBox="0 0 21 21" aria-hidden="true">
+              <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+              <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+            </svg>
+            Connect Microsoft 365
+          </button>
+        ) : (
+          <div className="space-y-2">
+            {ms365Accounts.map(a => {
+              const acctCals = ms365Calendars.filter(c => c.account_id === a.id)
+              return (
+                <div key={a.id} className="space-y-1">
+                  <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full shrink-0" style={{ background: 'rgba(0,120,212,0.15)' }}>
+                        <svg width="14" height="14" viewBox="0 0 21 21" aria-hidden="true">
+                          <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                          <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                          <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                          <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-[13px] text-text">{a.display_email}</div>
+                        <div className="text-[13px] text-text-dim">
+                          {a.last_sync_error
+                            ? <span className="text-red">Sync error</span>
+                            : a.last_synced_at
+                              ? `Synced ${new Date(a.last_synced_at).toLocaleDateString()}`
+                              : 'Connected'
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => ms365Disconnect(a.id)} className="text-[13px] text-red hover:underline shrink-0">Disconnect</button>
+                  </div>
+
+                  {acctCals.length > 0 && (
+                    <div className="pl-4 space-y-0.5 pb-1">
+                      {acctCals.map(c => (
+                        <CalendarRow
+                          key={c.id}
+                          cal={c}
+                          onToggleVisible={ms365ToggleVisible}
+                          onToggleBusy={ms365ToggleBusy}
+                          onSetPrimary={ms365SetPrimary}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }

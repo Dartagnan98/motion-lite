@@ -1,0 +1,146 @@
+{
+  "projectId": 482931,
+  "projectName": "Glenvalley Dental",
+  "periodStart": "2026-04-01",
+  "periodEnd": "2026-04-30",
+  "positions": [
+    {
+      "keyword": "dentist glenvalley",
+      "position": 2,
+      "previous_position": 4,
+      "landing_url": "https://glenvalleydental.com/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 880
+    },
+    {
+      "keyword": "family dentist glenvalley",
+      "position": 1,
+      "previous_position": 1,
+      "landing_url": "https://glenvalleydental.com/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 590
+    },
+    {
+      "keyword": "teeth whitening glenvalley",
+      "position": 3,
+      "previous_position": 5,
+      "landing_url": "https://glenvalleydental.com/teeth-whitening/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 320
+    },
+    {
+      "keyword": "emergency dentist glenvalley",
+      "position": 7,
+      "previous_position": 9,
+      "landing_url": "https://glenvalleydental.com/emergency-dentistry/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 210
+    },
+    {
+      "keyword": "dental implants glenvalley",
+      "position": 12,
+      "previous_position": 14,
+      "landing_url": "https://glenvalleydental.com/dental-implants/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 170
+    },
+    {
+      "keyword": "cosmetic dentist glenvalley",
+      "position": 5,
+      "previous_position": 6,
+      "landing_url": "https://glenvalleydental.com/cosmetic-dentistry/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 140
+    },
+    {
+      "keyword": "invisalign glenvalley",
+      "position": 8,
+      "previous_position": 11,
+      "landing_url": "https://glenvalleydental.com/invisalign/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 120
+    },
+    {
+      "keyword": "pediatric dentist glenvalley",
+      "position": 4,
+      "previous_position": 3,
+      "landing_url": "https://glenvalleydental.com/pediatric-dentistry/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 90
+    },
+    {
+      "keyword": "dental cleaning glenvalley",
+      "position": 6,
+      "previous_position": 8,
+      "landing_url": "https://glenvalleydental.com/preventive-care/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 80
+    },
+    {
+      "keyword": "root canal glenvalley",
+      "position": 15,
+      "previous_position": 18,
+      "landing_url": "https://glenvalleydental.com/root-canal/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 70
+    },
+    {
+      "keyword": "dental crowns glenvalley",
+      "position": 19,
+      "previous_position": 22,
+      "landing_url": "https://glenvalleydental.com/crowns/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 60
+    },
+    {
+      "keyword": "veneers glenvalley",
+      "position": 9,
+      "previous_position": 12,
+      "landing_url": "https://glenvalleydental.com/veneers/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 55
+    },
+    {
+      "keyword": "glenvalley dental care",
+      "position": 1,
+      "previous_position": 1,
+      "landing_url": "https://glenvalleydental.com/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 480
+    },
+    {
+      "keyword": "teeth cleaning near me",
+      "position": 23,
+      "previous_position": 25,
+      "landing_url": "https://glenvalleydental.com/preventive-care/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 1200
+    },
+    {
+      "keyword": "local dentist near me",
+      "position": 31,
+      "previous_position": 29,
+      "landing_url": "https://glenvalleydental.com/",
+      "last_check_date": "2026-04-30",
+      "search_volume": 3400
+    }
+  ],
+  "history": [
+    { "date": "2026-04-01", "avg_position": 9.8 },
+    { "date": "2026-04-03", "avg_position": 9.5 },
+    { "date": "2026-04-05", "avg_position": 9.3 },
+    { "date": "2026-04-08", "avg_position": 9.1 },
+    { "date": "2026-04-10", "avg_position": 8.9 },
+    { "date": "2026-04-12", "avg_position": 8.7 },
+    { "date": "2026-04-15", "avg_position": 8.5 },
+    { "date": "2026-04-17", "avg_position": 8.6 },
+    { "date": "2026-04-19", "avg_position": 8.4 },
+    { "date": "2026-04-21", "avg_position": 8.3 },
+    { "date": "2026-04-23", "avg_position": 8.1 },
+    { "date": "2026-04-25", "avg_position": 8.0 },
+    { "date": "2026-04-27", "avg_position": 7.9 },
+    { "date": "2026-04-29", "avg_position": 7.8 },
+    { "date": "2026-04-30", "avg_position": 7.7 }
+  ],
+  "fetchedAt": "2026-05-01T00:05:00.000Z"
+}

@@ -1,0 +1,182 @@
+{
+  "_meta": {
+    "comment": "Synthetic PageSpeed Insights v5 dual-strategy response for a dental clinic homepage. Slice B (2026-05-27): both mobile and desktop results in one raw snapshot. Structure matches what the adapter returns from fetchSnapshot(). Values redacted to plausible mid-tier scores. qa-engineer: feed this into pagespeed/normalize.ts to assert on the suffix-slug canonical metric output.",
+    "url": "https://example-dental.com/",
+    "slugs": [
+      "pagespeed.performance_mobile",
+      "pagespeed.performance_desktop",
+      "pagespeed.accessibility_mobile",
+      "pagespeed.accessibility_desktop",
+      "pagespeed.seo_mobile",
+      "pagespeed.seo_desktop",
+      "pagespeed.best_practices_mobile",
+      "pagespeed.best_practices_desktop",
+      "pagespeed.lcp_mobile",
+      "pagespeed.lcp_desktop",
+      "pagespeed.cls_mobile",
+      "pagespeed.cls_desktop",
+      "pagespeed.inp_mobile",
+      "pagespeed.inp_desktop",
+      "pagespeed.ttfb_mobile",
+      "pagespeed.ttfb_desktop"
+    ]
+  },
+  "url": "https://example-dental.com/",
+  "fetchedAt": "2026-05-27T12:00:00.000Z",
+  "mobile": {
+    "kind": "pagespeedonline#result",
+    "id": "https://example-dental.com/",
+    "analysisUTCTimestamp": "2026-05-27T12:00:00.000Z",
+    "lighthouseResult": {
+      "requestedUrl": "https://example-dental.com/",
+      "finalUrl": "https://example-dental.com/",
+      "lighthouseVersion": "11.4.0",
+      "fetchTime": "2026-05-27T12:00:00.000Z",
+      "configSettings": {
+        "formFactor": "mobile",
+        "emulatedFormFactor": "mobile",
+        "locale": "en-US"
+      },
+      "categories": {
+        "performance": {
+          "id": "performance",
+          "title": "Performance",
+          "score": 0.68
+        },
+        "accessibility": {
+          "id": "accessibility",
+          "title": "Accessibility",
+          "score": 0.91
+        },
+        "seo": {
+          "id": "seo",
+          "title": "SEO",
+          "score": 0.95
+        },
+        "best-practices": {
+          "id": "best-practices",
+          "title": "Best Practices",
+          "score": 0.83
+        }
+      },
+      "audits": {
+        "largest-contentful-paint": {
+          "id": "largest-contentful-paint",
+          "title": "Largest Contentful Paint",
+          "score": 0.4,
+          "numericValue": 4210,
+          "numericUnit": "millisecond",
+          "displayValue": "4.2 s"
+        },
+        "cumulative-layout-shift": {
+          "id": "cumulative-layout-shift",
+          "title": "Cumulative Layout Shift",
+          "score": 0.92,
+          "numericValue": 0.042,
+          "numericUnit": "unitless",
+          "displayValue": "0.042"
+        },
+        "experimental-interaction-to-next-paint": {
+          "id": "experimental-interaction-to-next-paint",
+          "title": "Interaction to Next Paint",
+          "score": 0.75,
+          "numericValue": 190,
+          "numericUnit": "millisecond",
+          "displayValue": "190 ms"
+        },
+        "server-response-time": {
+          "id": "server-response-time",
+          "title": "Initial server response time was short",
+          "score": 0.99,
+          "numericValue": 142,
+          "numericUnit": "millisecond",
+          "displayValue": "Root document took 140 ms"
+        }
+      }
+    },
+    "loadingExperience": {
+      "id": "https://example-dental.com/",
+      "metrics": {},
+      "overall_category": "AVERAGE",
+      "initial_url": "https://example-dental.com/"
+    }
+  },
+  "desktop": {
+    "kind": "pagespeedonline#result",
+    "id": "https://example-dental.com/",
+    "analysisUTCTimestamp": "2026-05-27T12:00:02.000Z",
+    "lighthouseResult": {
+      "requestedUrl": "https://example-dental.com/",
+      "finalUrl": "https://example-dental.com/",
+      "lighthouseVersion": "11.4.0",
+      "fetchTime": "2026-05-27T12:00:02.000Z",
+      "configSettings": {
+        "formFactor": "desktop",
+        "emulatedFormFactor": "desktop",
+        "locale": "en-US"
+      },
+      "categories": {
+        "performance": {
+          "id": "performance",
+          "title": "Performance",
+          "score": 0.89
+        },
+        "accessibility": {
+          "id": "accessibility",
+          "title": "Accessibility",
+          "score": 0.91
+        },
+        "seo": {
+          "id": "seo",
+          "title": "SEO",
+          "score": 0.95
+        },
+        "best-practices": {
+          "id": "best-practices",
+          "title": "Best Practices",
+          "score": 0.83
+        }
+      },
+      "audits": {
+        "largest-contentful-paint": {
+          "id": "largest-contentful-paint",
+          "title": "Largest Contentful Paint",
+          "score": 0.72,
+          "numericValue": 2340,
+          "numericUnit": "millisecond",
+          "displayValue": "2.3 s"
+        },
+        "cumulative-layout-shift": {
+          "id": "cumulative-layout-shift",
+          "title": "Cumulative Layout Shift",
+          "score": 0.95,
+          "numericValue": 0.018,
+          "numericUnit": "unitless",
+          "displayValue": "0.018"
+        },
+        "experimental-interaction-to-next-paint": {
+          "id": "experimental-interaction-to-next-paint",
+          "title": "Interaction to Next Paint",
+          "score": 0.92,
+          "numericValue": 78,
+          "numericUnit": "millisecond",
+          "displayValue": "78 ms"
+        },
+        "server-response-time": {
+          "id": "server-response-time",
+          "title": "Initial server response time was short",
+          "score": 0.99,
+          "numericValue": 138,
+          "numericUnit": "millisecond",
+          "displayValue": "Root document took 140 ms"
+        }
+      }
+    },
+    "loadingExperience": {
+      "id": "https://example-dental.com/",
+      "metrics": {},
+      "overall_category": "FAST",
+      "initial_url": "https://example-dental.com/"
+    }
+  }
+}

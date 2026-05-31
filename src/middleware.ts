@@ -7,8 +7,10 @@ const PUBLIC_PATHS = ['/login', '/invite', '/uploads/', '/api/auth/', '/booking'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Local dev bypass — skip all auth on localhost
-  if (process.env.BYPASS_AUTH === 'true') {
+  // Local dev bypass — skip all auth on localhost. Gated to non-prod to match
+  // the guard in auth.ts; prevents a prod footgun if BYPASS_AUTH ends up in
+  // a deployed .env.
+  if (process.env.BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production') {
     return NextResponse.next()
   }
 

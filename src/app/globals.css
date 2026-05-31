@@ -727,6 +727,21 @@ button, a, [role="button"] {
   opacity: 0.5;
 }
 
+/* ── Mobile utilities ──────────────────────────────────────────────────────── */
+
+/* Ensure all form inputs render at ≥16px on mobile to prevent iOS auto-zoom */
+@media (max-width: 767px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Tap target helper: ensure any element with this class has at least a 44×44 hit area */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 .dispatch-empty span {
   font-size: 10px;
   font-family: var(--font-mono);

@@ -37,15 +37,23 @@ const SIDEBAR_MIN = 220
 const SIDEBAR_MAX = 480
 const SIDEBAR_DEFAULT = 244
 
-export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
+export function Sidebar({ workspaces, mobileOpen = false, onMobileClose }: { workspaces: Workspace[]; mobileOpen?: boolean; onMobileClose?: () => void }) {
   const { workspaceId: activeWsId, setActive: setActiveWs } = useActiveWorkspace()
   const activeWorkspaceId = activeWsId || workspaces[0]?.id
+  const pathname = usePathname()
   // Auto-select first workspace if none active
   useEffect(() => {
     if (!activeWsId && workspaces.length > 0 && workspaces[0]?.id) {
       setActiveWs(workspaces[0].id)
     }
   }, [activeWsId, workspaces, setActiveWs])
+
+  // Close mobile drawer on navigation
+  useEffect(() => {
+    onMobileClose?.()
+    // Only run when pathname changes, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
   const [collapsed, setCollapsed] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -74,7 +82,7 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
         if (saved) return JSON.parse(saved) as Record<string, boolean>
       } catch {}
     }
-    return { productivity: true, ai: true, ads: true, operations: true } as Record<string, boolean>
+    return { productivity: true, ai: true, ads: true, clients: true, operations: true } as Record<string, boolean>
   })
   const toggleNavSection = (key: string) => {
     setNavSections(prev => {
@@ -394,10 +402,32 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
   }
 
   return (
+    <>
+      {/* Mobile off-canvas backdrop */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 md:hidden transition-opacity duration-200 ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onMobileClose}
+        aria-hidden="true"
+      />
+
+    {/*
+      Single <aside> element:
+      - Mobile (< md): fixed off-canvas drawer, translate-x for open/close
+      - Desktop (>= md): normal relative sidebar in the flex row
+    */}
     <aside
       data-sidebar
-      className={`flex flex-col border-r border-border glass shrink-0 relative hidden sm:flex ${collapsed ? 'w-[52px]' : ''}`}
-      style={collapsed ? undefined : { width: sidebarWidth }}
+      className={[
+        // Shared
+        'flex flex-col border-r border-border glass shrink-0',
+        // Mobile: fixed drawer
+        'fixed inset-y-0 left-0 z-50 w-[260px] transition-transform duration-200 ease-out',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        // Desktop: static sidebar, reset mobile overrides
+        'md:relative md:inset-auto md:z-auto md:translate-x-0',
+        collapsed ? 'md:w-[52px]' : '',
+      ].join(' ')}
+      style={!collapsed ? { width: sidebarWidth } : undefined}
     >
       {/* Resize handle */}
       {!collapsed && (
@@ -791,6 +821,32 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
               </>
             )}
 
+            {/* Clients — unified CRM + platform hub (Phase A convergence) */}
+            {isAdmin && (
+              <>
+                <div className="border-t border-border/40 mt-1 mb-1" />
+                <button onClick={() => toggleNavSection('clients')} className="flex items-center gap-1.5 px-1 pt-0.5 pb-1 w-full">
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className={`text-text-dim transition-transform ${navSections.clients ? '' : '-rotate-90'}`}>
+                    <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="sidebar-section-label">Clients</span>
+                </button>
+                {navSections.clients && (
+                  <div className="flex flex-col gap-0.5 pb-1">
+                    <NavItem icon="clients" label="Clients" href="/clients" />
+                    <NavItem icon="page" label="Contacts" href="/contacts" />
+                    <NavItem icon="briefcase" label="Companies" href="/companies" />
+                    <NavItem icon="chart" label="Pipeline" href="/pipeline" />
+                    <NavItem icon="crm" label="Lists" href="/lists" />
+                    <NavItem icon="inbox" label="Leads" href="/leads" />
+                    <NavItem icon="dashboard" label="PM Dashboard" href="/platform/dashboard" />
+                    <NavItem icon="chart" label="Reports" href="/platform/reports" />
+                    <NavItem icon="database" label="Integrations" href="/platform/connect" />
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Operations */}
             <div className="border-t border-border/40 mt-1 mb-1" />
             <button onClick={() => toggleNavSection('operations')} className="flex items-center gap-1.5 px-1 pt-0.5 pb-1 w-full">
@@ -801,8 +857,6 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
             </button>
             {navSections.operations && (
               <div className="flex flex-col gap-0.5 pb-1">
-                <NavItem icon="briefcase" label="Businesses" href="/businesses" />
-                <NavItem icon="clients" label="Clients" href="/clients" />
                 <NavItem icon="crm" label="Campaigns" href="/crm/campaigns" />
               </div>
             )}
@@ -977,6 +1031,7 @@ export function Sidebar({ workspaces }: { workspaces: Workspace[] }) {
         />
       )}
     </aside>
+    </>
   )
 }
 

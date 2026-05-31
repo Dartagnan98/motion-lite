@@ -1,0 +1,220 @@
+{
+  "workspaceId": "123456789012345",
+  "periodStart": "2026-04-01",
+  "periodEnd": "2026-04-30",
+  "tasks": [
+    {
+      "gid": "1209876543210001",
+      "name": "Update homepage hero copy",
+      "completed": true,
+      "completed_at": "2026-04-28T16:45:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210100",
+            "name": "Website Refresh — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210200",
+            "name": "Design",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210002",
+      "name": "Publish April blog post: Spring Dental Tips",
+      "completed": true,
+      "completed_at": "2026-04-25T13:10:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210101",
+            "name": "SEO Content — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210201",
+            "name": "Published",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210003",
+      "name": "Submit Google Business Profile update",
+      "completed": true,
+      "completed_at": "2026-04-22T09:30:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210101",
+            "name": "SEO Content — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": null
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210004",
+      "name": "GSC impressions review — March",
+      "completed": true,
+      "completed_at": "2026-04-18T11:00:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210102",
+            "name": "Monthly Reporting — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210202",
+            "name": "Done",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210005",
+      "name": "Build 5 local citations (Yelp, YellowPages, etc.)",
+      "completed": true,
+      "completed_at": "2026-04-15T14:20:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210101",
+            "name": "SEO Content — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210201",
+            "name": "Published",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210006",
+      "name": "Fix Core Web Vitals LCP on mobile (images lazy-load)",
+      "completed": true,
+      "completed_at": "2026-04-12T10:05:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210100",
+            "name": "Website Refresh — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210200",
+            "name": "Design",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210007",
+      "name": "Migrate contact form to Gravity Forms",
+      "completed": true,
+      "completed_at": "2026-04-10T16:00:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210100",
+            "name": "Website Refresh — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210203",
+            "name": "Development",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210008",
+      "name": "GA4 event tracking audit",
+      "completed": true,
+      "completed_at": "2026-04-08T09:45:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210102",
+            "name": "Monthly Reporting — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210202",
+            "name": "Done",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210009",
+      "name": "Write March retainer report",
+      "completed": true,
+      "completed_at": "2026-04-05T15:30:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210102",
+            "name": "Monthly Reporting — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210202",
+            "name": "Done",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210010",
+      "name": "Keyword mapping refresh — cosmetic dentistry terms",
+      "completed": true,
+      "completed_at": "2026-04-03T13:00:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210101",
+            "name": "SEO Content — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": {
+            "gid": "1209876543210201",
+            "name": "Published",
+            "resource_type": "section"
+          }
+        }
+      ]
+    },
+    {
+      "gid": "1209876543210011",
+      "name": "Kickoff call prep for Q2",
+      "completed": true,
+      "completed_at": "2026-04-01T10:00:00.000Z",
+      "memberships": [
+        {
+          "project": {
+            "gid": "1209876543210102",
+            "name": "Monthly Reporting — Glenvalley Dental",
+            "resource_type": "project"
+          },
+          "section": null
+        }
+      ]
+    }
+  ],
+  "fetchedAt": "2026-05-01T00:05:00.000Z"
+}

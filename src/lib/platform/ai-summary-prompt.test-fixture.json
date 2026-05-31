@@ -1,0 +1,83 @@
+{
+  "_meta": {
+    "comment": "Test fixture for buildExecutiveSummaryPrompt(). Uses real Sprint-1 verified numbers for Glenvalley Dental (GSC: 72 clicks / 6,258 impressions / 1.15% CTR / 20.55 avg position; GA4: 256 users). previousPeriod block now includes periodStart/periodEnd and three sections — Search Performance, Traffic Overview, Tasks Completed — so frontend-eng and qa-engineer can exercise all delta paths including derived-percentage allowance, negative-delta honest framing, and mixed-signal leading-metric selection."
+  },
+  "clientName": "Glenvalley Dental",
+  "periodStart": "2026-04-01",
+  "periodEnd": "2026-04-30",
+  "sections": [
+    {
+      "title": "Search Performance",
+      "metrics": [
+        { "label": "Clicks", "value": 72, "unit": "count" },
+        { "label": "Impressions", "value": 6258, "unit": "count" },
+        { "label": "CTR", "value": "1.15", "unit": "%" },
+        { "label": "Avg Position", "value": "20.55" }
+      ]
+    },
+    {
+      "title": "Traffic Overview",
+      "metrics": [
+        { "label": "Users", "value": 256, "unit": "count" },
+        { "label": "Sessions", "value": 312, "unit": "count" },
+        { "label": "Engagement Rate", "value": "63", "unit": "%" },
+        { "label": "Top Source", "value": "google / organic" }
+      ]
+    },
+    {
+      "title": "Tasks Completed",
+      "metrics": [
+        { "label": "Tasks Completed", "value": 8, "unit": "count" },
+        { "label": "Hours Logged", "value": "11.5", "unit": "hours" },
+        { "label": "Deliverables Published", "value": 3, "unit": "count" }
+      ]
+    },
+    {
+      "title": "Site Health",
+      "metrics": [
+        { "label": "Performance Score", "value": 74, "unit": "count" },
+        { "label": "Largest Contentful Paint", "value": 2800, "unit": "ms" },
+        { "label": "Total Blocking Time", "value": 210, "unit": "ms" }
+      ]
+    }
+  ],
+  "previousPeriod": {
+    "periodStart": "2026-03-01",
+    "periodEnd": "2026-03-31",
+    "sections": [
+      {
+        "title": "Search Performance",
+        "metrics": [
+          { "label": "Clicks", "value": 58 },
+          { "label": "Impressions", "value": 5412 },
+          { "label": "CTR", "value": "1.07" },
+          { "label": "Avg Position", "value": "22.10" }
+        ]
+      },
+      {
+        "title": "Traffic Overview",
+        "metrics": [
+          { "label": "Users", "value": 198 },
+          { "label": "Sessions", "value": 241 },
+          { "label": "Engagement Rate", "value": "59" }
+        ]
+      },
+      {
+        "title": "Tasks Completed",
+        "metrics": [
+          { "label": "Tasks Completed", "value": 11 },
+          { "label": "Hours Logged", "value": "14.5" },
+          { "label": "Deliverables Published", "value": 4 }
+        ]
+      },
+      {
+        "title": "Site Health",
+        "metrics": [
+          { "label": "Performance Score", "value": 71 },
+          { "label": "Largest Contentful Paint", "value": 3100 },
+          { "label": "Total Blocking Time", "value": 280 }
+        ]
+      }
+    ]
+  }
+}

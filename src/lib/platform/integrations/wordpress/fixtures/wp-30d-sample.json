@@ -1,0 +1,52 @@
+{
+  "siteUrl": "https://glenvalleydental.com",
+  "periodStart": "2026-04-01",
+  "periodEnd": "2026-04-30",
+  "wpVersion": "6.5.2",
+  "postsPublishedCount": 3,
+  "pagesPublishedCount": 1,
+  "mediaUploadsCount": 14,
+  "recentPosts": [
+    {
+      "id": 2041,
+      "title": { "rendered": "Spring Dental Tips: How to Care for Your Teeth This Season" },
+      "date": "2026-04-28T09:00:00",
+      "status": "publish",
+      "type": "post",
+      "link": "https://glenvalleydental.com/spring-dental-tips-2026/"
+    },
+    {
+      "id": 2038,
+      "title": { "rendered": "What to Expect During Your First Invisalign Consultation" },
+      "date": "2026-04-15T10:30:00",
+      "status": "publish",
+      "type": "post",
+      "link": "https://glenvalleydental.com/invisalign-consultation-guide/"
+    },
+    {
+      "id": 2035,
+      "title": { "rendered": "5 Signs You Might Need a Root Canal (And What to Expect)" },
+      "date": "2026-04-03T08:45:00",
+      "status": "publish",
+      "type": "post",
+      "link": "https://glenvalleydental.com/signs-you-need-root-canal/"
+    },
+    {
+      "id": 2030,
+      "title": { "rendered": "March 2026 Patient Newsletter" },
+      "date": "2026-03-28T09:00:00",
+      "status": "publish",
+      "type": "post",
+      "link": "https://glenvalleydental.com/newsletter-march-2026/"
+    },
+    {
+      "id": 2025,
+      "title": { "rendered": "Understanding Dental Implants: A Patient Guide" },
+      "date": "2026-03-15T11:00:00",
+      "status": "publish",
+      "type": "post",
+      "link": "https://glenvalleydental.com/dental-implants-patient-guide/"
+    }
+  ],
+  "fetchedAt": "2026-05-01T00:08:00.000Z"
+}

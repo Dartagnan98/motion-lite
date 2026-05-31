@@ -1,0 +1,11 @@
+# Replace platform.hiilite.com with your subdomain; Caddy auto-issues TLS via Let's Encrypt.
+platform.hiilite.com {
+  reverse_proxy 127.0.0.1:3000
+  encode gzip
+  log {
+    output file /var/log/caddy/platform.log {
+      roll_size 100mb
+      roll_keep 14
+    }
+  }
+}

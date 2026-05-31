@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginWithPassword, createSession } from '@/lib/auth'
+import { getDb } from '@/lib/db'
 import { cookies } from 'next/headers'
 
 // Simple in-memory rate limiter: max 5 attempts per IP per 15 minutes
@@ -45,6 +46,20 @@ export async function POST(req: NextRequest) {
   try {
     let user
     if (signup) {
+      // Sign-up lockdown: gated by ALLOW_SIGNUP env. Default = locked.
+      // Bootstrap exception: if the DB has zero users, the first signup is allowed
+      // so a fresh install can create its first owner. After that, the lock applies.
+      const allowSignup = process.env.ALLOW_SIGNUP === '1'
+      if (!allowSignup) {
+        let userCount = 0
+        try {
+          const row = getDb().prepare('SELECT COUNT(*) as c FROM users').get() as { c: number } | undefined
+          userCount = row?.c ?? 0
+        } catch { /* if users table is missing, treat as zero -> bootstrap */ }
+        if (userCount > 0) {
+          return NextResponse.json({ error: 'signup disabled — contact admin' }, { status: 403 })
+        }
+      }
       const { signupWithPassword } = await import('@/lib/auth')
       user = await signupWithPassword(email, name || email.split('@')[0], password)
     } else {

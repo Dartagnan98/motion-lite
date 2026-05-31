@@ -16,3 +16,7 @@ store/
 *.db-shm
 .vscode/
 .idea/
+
+# Claude Code session state (per-machine, never commit)
+.claude/
+*_bad.*

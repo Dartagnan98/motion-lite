@@ -119,6 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [loaded, setLoaded] = useState(false)
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([])
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // Tab state - persisted to localStorage
   const [tabs, setTabs] = useState<Tab[]>(() => {
@@ -281,10 +282,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div data-density={density} className="flex flex-col overflow-hidden pwa-safe-top" style={{ height: '100dvh' }}>
         {/* Tab Bar - full width across top */}
         <div data-tabbar className="electron-drag flex items-center h-[39px] shrink-0 overflow-x-auto gap-1" style={{ background: 'var(--bg-chrome)', borderBottom: '1px solid var(--border)', padding: '0 8px' }}>
-          <button onClick={() => window.history.back()} className="electron-nodrag flex items-center justify-center w-8 h-8 rounded-md text-text-dim hover:bg-hover hover:text-text shrink-0">
+          {/* Hamburger — visible only on mobile (< md) */}
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="electron-nodrag md:hidden flex items-center justify-center w-11 h-11 rounded-md text-text-dim hover:bg-hover hover:text-text shrink-0"
+            aria-label="Open navigation"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <button onClick={() => window.history.back()} className="electron-nodrag hidden md:flex items-center justify-center w-8 h-8 rounded-md text-text-dim hover:bg-hover hover:text-text shrink-0">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
-          <button onClick={() => window.history.forward()} className="electron-nodrag flex items-center justify-center w-8 h-8 rounded-md text-text-dim hover:bg-hover hover:text-text shrink-0">
+          <button onClick={() => window.history.forward()} className="electron-nodrag hidden md:flex items-center justify-center w-8 h-8 rounded-md text-text-dim hover:bg-hover hover:text-text shrink-0">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
           {/* Tab strip area */}
@@ -370,7 +381,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Sidebar + Content below tab bar */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          <Sidebar workspaces={workspaces} />
+          <Sidebar workspaces={workspaces} mobileOpen={mobileSidebarOpen} onMobileClose={() => setMobileSidebarOpen(false)} />
           <div className="flex-1 min-h-0 min-w-0 flex flex-col">
             {/* Breadcrumb Bar - hidden on pages with their own title header */}
             {breadcrumbs.length > 0 && pathname !== '/projects-tasks' && pathname !== '/schedule' && (

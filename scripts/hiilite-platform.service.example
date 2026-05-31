@@ -1,0 +1,17 @@
+[Unit]
+Description=Hiilite Platform (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=hiilite
+WorkingDirectory=/opt/hiilite-platform
+EnvironmentFile=/opt/hiilite-platform/.env.local
+ExecStart=/usr/bin/node /opt/hiilite-platform/.next/standalone/server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/hiilite-platform/stdout.log
+StandardError=append:/var/log/hiilite-platform/stderr.log
+
+[Install]
+WantedBy=multi-user.target

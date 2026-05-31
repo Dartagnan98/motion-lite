@@ -1172,6 +1172,9 @@ function initAppTables() {
   if (!cpColNames.includes('page_id')) d.exec("ALTER TABLE client_profiles ADD COLUMN page_id TEXT")
   if (!cpColNames.includes('folder_id')) d.exec("ALTER TABLE client_profiles ADD COLUMN folder_id INTEGER REFERENCES folders(id)")
   if (!cpColNames.includes('avatar_url')) d.exec("ALTER TABLE client_profiles ADD COLUMN avatar_url TEXT")
+  // Soft link back to the originating CRM company when a client is promoted
+  // from the CRM (the promote-to-client bridge). Unenforced reference column.
+  if (!cpColNames.includes('crm_company_id')) d.exec("ALTER TABLE client_profiles ADD COLUMN crm_company_id INTEGER")
 
   // ─── Client Businesses (multi-business support) ───
   d.exec(`
@@ -1955,6 +1958,9 @@ function initAppTables() {
   // Project template roles field
   try { d.exec('ALTER TABLE project_templates ADD COLUMN roles TEXT DEFAULT \'[]\'') } catch { /* already exists */ }
 
+  // Project template text_variables field (used by createTemplate / updateTemplate)
+  try { d.exec('ALTER TABLE project_templates ADD COLUMN text_variables TEXT DEFAULT \'[]\'') } catch { /* already exists */ }
+
   // Migrate tasks table to expand status CHECK constraint (add blocked, cancelled)
   try {
     const hasNewStatuses = d.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").get() as { sql: string }
@@ -2372,6 +2378,9 @@ function initAppTables() {
   safeAddColumn(d, 'crm_contacts', 'referring_affiliate_link_id', 'INTEGER REFERENCES crm_affiliate_links(id) ON DELETE SET NULL')
   safeAddColumn(d, 'crm_contacts', 'inbox_archived_at', 'INTEGER')
   safeAddColumn(d, 'crm_contacts', 'external_instagram_id', 'TEXT')
+  // Soft link to client_profiles (the productized client spine). SQLite cannot
+  // enforce a FK on ALTER ADD COLUMN, so this is an unenforced reference column.
+  safeAddColumn(d, 'crm_contacts', 'client_profile_id', 'INTEGER')
 
   d.exec(`
     CREATE TABLE IF NOT EXISTS crm_activities (
@@ -4321,6 +4330,27 @@ function initAppTables() {
   safeAddColumn(d, 'crm_opportunities', 'company_id', 'INTEGER REFERENCES crm_companies(id) ON DELETE SET NULL')
   d.exec(`CREATE INDEX IF NOT EXISTS idx_crm_contacts_company_id ON crm_contacts(company_id)`)
   d.exec(`CREATE INDEX IF NOT EXISTS idx_crm_opportunities_company_id ON crm_opportunities(company_id)`)
+  // Brand/marketing fields — mirror client_profiles so /companies UI can adopt
+  // the businesses-archive profile shape and promote bridge can hand off seamlessly.
+  // All additive, all nullable. Idempotent via safeAddColumn.
+  safeAddColumn(d, 'crm_companies', 'avatar_color', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'avatar_url', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'monthly_budget', 'INTEGER')
+  safeAddColumn(d, 'crm_companies', 'status', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'brand_voice', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'goals', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'target_audience', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'services', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'offer', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'offer_details', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'instagram_handle', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'tiktok_handle', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'facebook_page', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'location', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'context', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'folder_id', 'INTEGER')
+  safeAddColumn(d, 'crm_companies', 'ad_account_id', 'TEXT')
+  safeAddColumn(d, 'crm_companies', 'page_id', 'TEXT')
 
   // ── Webchat widgets + chat messages ──
   // Widgets are public lead-capture bubbles embedded on external sites.
@@ -6349,6 +6379,8 @@ const ALLOWED_CLIENT_PROFILE_COLUMNS = [
   'status', 'ad_account_id', 'monthly_budget', 'brand_voice', 'goals', 'instagram_handle',
   'tiktok_handle', 'facebook_page', 'website', 'target_audience', 'services', 'location',
   'offer', 'offer_details', 'supporting_doc_ids', 'project_ids', 'page_id', 'folder_id', 'avatar_url',
+  'qbo_customer_id', 'qbo_class_id',
+  'crm_company_id',
 ] as const
 
 const ALLOWED_CLIENT_BUSINESS_COLUMNS = [
@@ -9882,6 +9914,42 @@ export function getClientProfile(id: number): ClientProfile | null {
   return getDb().prepare('SELECT * FROM client_profiles WHERE id = ?').get(id) as ClientProfile | null
 }
 
+// ─── WORKSPACE-DEFAULT FOOTGUN — READ ME ──────────────────────────────────
+// The three creators below — createClientProfile, createClientBusiness, and
+// createCrmCompany (further down) — take `workspace_id` AS GIVEN. They do
+// NOT default to the acting user's primary workspace. If a route passes
+// undefined / null / 0, the row is created with workspace_id = NULL, which
+// silently leaks data across tenants once we run multi-user.
+//
+// Contract: ROUTES are responsible for resolving workspace_id from the
+// authenticated user BEFORE calling these. Use resolvePrimaryWorkspaceId()
+// below, or the canonical pattern:
+//
+//     const wsId = getUserWorkspaces(user.id).map(w => w.id)[0]
+//
+// If you need a request-scoped resolver, prefer requireAuthWithWorkspace()
+// from src/lib/auth.ts which honors the X-Workspace-Id header + falls back
+// to primary. New routes MUST set workspace_id explicitly.
+//
+// Existing patched routes for reference:
+//   /api/clients, /api/businesses, /api/crm/companies
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * One-liner helper for routes: returns the acting user's primary workspace id
+ * (or first available), or null if the user has no workspaces. Routes that
+ * call createClientProfile / createClientBusiness / createCrmCompany should
+ * use this to populate workspace_id when the request body doesn't carry one.
+ *
+ * For the header-aware variant, use requireAuthWithWorkspace() from auth.ts.
+ */
+export function resolvePrimaryWorkspaceId(userId: number): number | null {
+  const workspaces = getUserWorkspaces(userId)
+  if (workspaces.length === 0) return null
+  const primary = workspaces.find(w => w.is_primary === 1)
+  return (primary ? primary.id : workspaces[0].id) ?? null
+}
+
 export function createClientProfile(data: { name: string; slug: string; industry?: string; avatar_color?: string; context?: string; contacts?: string; notes?: string; workspace_id?: number }): ClientProfile {
   const result = getDb().prepare(
     'INSERT INTO client_profiles (name, slug, industry, avatar_color, context, contacts, notes, workspace_id, public_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -9976,6 +10044,10 @@ export function getClientBusinesses(clientId: number): ClientBusiness[] {
   return getDb().prepare('SELECT * FROM client_businesses WHERE client_id = ? ORDER BY sort_order, id').all(clientId) as ClientBusiness[]
 }
 
+// WORKSPACE-DEFAULT FOOTGUN — see notes above createClientProfile. This function
+// falls back to "first workspace globally" when workspace_id is missing — that
+// is NOT a tenant-safe default. Routes MUST resolve workspace_id from the user
+// (resolvePrimaryWorkspaceId / requireAuthWithWorkspace) before calling.
 export function createClientBusiness(data: Record<string, unknown>): ClientBusiness {
   const name = data.name as string
   const slug = (data.slug as string) || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -12401,6 +12473,8 @@ export interface CrmContact {
   company: string | null
   /** Optional structured link to a crm_companies row. Independent of the text `company` field. */
   company_id: number | null
+  /** Optional soft link to a client_profiles row (the productized client spine). */
+  client_profile_id: number | null
   job_title: string | null
   website: string | null
   tags: string
@@ -12957,13 +13031,17 @@ function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
   }
 }
 
-export function getContacts(filters: { workspaceId: number; stageId?: number | null; tag?: string | null; search?: string | null; limit?: number | null; offset?: number | null } ): CrmContact[] {
+export function getContacts(filters: { workspaceId: number; stageId?: number | null; clientProfileId?: number | null; tag?: string | null; search?: string | null; limit?: number | null; offset?: number | null } ): CrmContact[] {
   const clauses = ['workspace_id = ?']
   const params: Array<number | string> = [filters.workspaceId]
 
   if (filters.stageId) {
     clauses.push('pipeline_stage_id = ?')
     params.push(filters.stageId)
+  }
+  if (filters.clientProfileId) {
+    clauses.push('client_profile_id = ?')
+    params.push(filters.clientProfileId)
   }
   if (filters.tag) {
     clauses.push('LOWER(tags) LIKE ? ESCAPE \'\\\'')
@@ -13011,12 +13089,13 @@ export function createContact(data: {
   workspace_id: number
   notes?: string | null
   custom_fields?: CrmCustomFields
+  client_profile_id?: number | null
 }): CrmContact {
   const result = getDb().prepare(`
     INSERT INTO crm_contacts (
       public_id, name, email, phone, company, tags, pipeline_stage_id,
-      owner_id, workspace_id, notes, custom_fields
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      owner_id, workspace_id, notes, custom_fields, client_profile_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     generatePublicId(),
     data.name,
@@ -13029,6 +13108,7 @@ export function createContact(data: {
     data.workspace_id,
     data.notes ?? null,
     JSON.stringify(data.custom_fields ?? {}),
+    data.client_profile_id ?? null,
   )
   return getContact(Number(result.lastInsertRowid)) as CrmContact
 }
@@ -13038,12 +13118,29 @@ export function updateContact(idOrPublicId: number | string, data: Partial<{
   email: string | null
   phone: string | null
   company: string | null
+  company_id: number | null
+  job_title: string | null
+  website: string | null
   tags: string | string[] | null
   pipeline_stage_id: number | null
   owner_id: number | null
   workspace_id: number
   notes: string | null
-  custom_fields: CrmCustomFields
+  custom_fields: CrmCustomFields | string
+  client_profile_id: number | null
+  lifecycle_stage: string | null
+  source: string | null
+  unsubscribed: number
+  dnd_sms: number
+  dnd_email: number
+  dnd_calls: number
+  birthday: string | null
+  timezone: string | null
+  address_line1: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  country: string | null
 }>): CrmContact | null {
   const id = resolveTableId('crm_contacts', idOrPublicId)
   if (!id) return null
@@ -13055,7 +13152,7 @@ export function updateContact(idOrPublicId: number | string, data: Partial<{
     const value = key === 'tags'
       ? normalizeTags(rawValue as string | string[] | null)
       : key === 'custom_fields'
-        ? JSON.stringify(rawValue ?? {})
+        ? (typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue ?? {}))
         : rawValue ?? null
     sets.push(`${key} = ?`)
     params.push(value as number | string | null)
@@ -18297,12 +18394,34 @@ export interface CrmCompany {
   owner_id: number | null
   created_at: number
   updated_at: number
+  // Brand/marketing fields — mirror client_profiles for promote-bridge handoff.
+  avatar_color: string | null
+  avatar_url: string | null
+  monthly_budget: number | null
+  status: string | null
+  brand_voice: string | null
+  goals: string | null
+  target_audience: string | null
+  services: string | null
+  offer: string | null
+  offer_details: string | null
+  instagram_handle: string | null
+  tiktok_handle: string | null
+  facebook_page: string | null
+  location: string | null
+  context: string | null
+  folder_id: number | null
+  ad_account_id: string | null
+  page_id: string | null
 }
 
 export interface CrmCompanyRecord extends CrmCompany {
   contact_count: number
   opportunity_count: number
   open_opportunity_value: number
+  /** Set when this company has been promoted to a client_profile. */
+  client_profile_id: number | null
+  client_profile_slug: string | null
 }
 
 function enrichCompany(company: CrmCompany): CrmCompanyRecord {
@@ -18312,15 +18431,30 @@ function enrichCompany(company: CrmCompany): CrmCompanyRecord {
        (SELECT COUNT(*) FROM crm_opportunities WHERE company_id = ?) AS opps,
        (SELECT COALESCE(SUM(value), 0) FROM crm_opportunities WHERE company_id = ? AND status = 'open') AS open_value`
   ).get(company.id, company.id, company.id) as { contacts: number; opps: number; open_value: number }
+  // Soft promoted-link lookup. crm_company_id is nullable on client_profiles.
+  const promoted = getDb().prepare(
+    `SELECT id, slug FROM client_profiles WHERE crm_company_id = ? LIMIT 1`
+  ).get(company.id) as { id: number; slug: string | null } | undefined
   return {
     ...company,
     contact_count: counts.contacts,
     opportunity_count: counts.opps,
     open_opportunity_value: counts.open_value,
+    client_profile_id: promoted?.id ?? null,
+    client_profile_slug: promoted?.slug ?? null,
   }
 }
 
-export function getCrmCompanies(workspaceId: number, search?: string): CrmCompanyRecord[] {
+/**
+ * List companies in a workspace.
+ * @param showPromoted when false (default), hide companies that already have a
+ *   matching client_profiles.crm_company_id (graduated to the client side).
+ */
+export function getCrmCompanies(
+  workspaceId: number,
+  search?: string,
+  showPromoted: boolean = false,
+): CrmCompanyRecord[] {
   let rows: CrmCompany[]
   if (search && search.trim()) {
     rows = getDb().prepare(
@@ -18331,7 +18465,9 @@ export function getCrmCompanies(workspaceId: number, search?: string): CrmCompan
       `SELECT * FROM crm_companies WHERE workspace_id = ? ORDER BY name COLLATE NOCASE ASC, id ASC`
     ).all(workspaceId) as CrmCompany[]
   }
-  return rows.map(enrichCompany)
+  const enriched = rows.map(enrichCompany)
+  if (showPromoted) return enriched
+  return enriched.filter((r) => r.client_profile_id === null)
 }
 
 export function getCrmCompanyById(id: number, workspaceId: number): CrmCompanyRecord | null {
@@ -18340,36 +18476,17 @@ export function getCrmCompanyById(id: number, workspaceId: number): CrmCompanyRe
   return enrichCompany(row)
 }
 
-export function createCrmCompany(workspaceId: number, data: {
-  name: string
-  website?: string | null
-  phone?: string | null
-  industry?: string | null
-  company_size?: string | null
-  notes?: string | null
-  ownerId?: number | null
-}): CrmCompanyRecord {
-  const now = Math.floor(Date.now() / 1000)
-  const result = getDb().prepare(`
-    INSERT INTO crm_companies (workspace_id, public_id, name, website, phone, industry, company_size, notes, owner_id, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    workspaceId,
-    generatePublicId(),
-    data.name.trim(),
-    data.website?.trim() || null,
-    data.phone?.trim() || null,
-    data.industry?.trim() || null,
-    data.company_size?.trim() || null,
-    data.notes?.trim() || null,
-    data.ownerId ?? null,
-    now,
-    now,
-  )
-  return getCrmCompanyById(Number(result.lastInsertRowid), workspaceId) as CrmCompanyRecord
-}
+// Allow-list for updateCrmCompany — mirrors client_profiles brand surface so
+// /companies UI can write the same shape that /clients reads after promote.
+const ALLOWED_CRM_COMPANY_COLUMNS = [
+  'name', 'website', 'phone', 'industry', 'company_size', 'notes', 'owner_id',
+  'avatar_color', 'avatar_url', 'monthly_budget', 'status', 'brand_voice', 'goals',
+  'target_audience', 'services', 'offer', 'offer_details',
+  'instagram_handle', 'tiktok_handle', 'facebook_page', 'location', 'context',
+  'folder_id', 'ad_account_id', 'page_id',
+] as const
 
-export function updateCrmCompany(id: number, workspaceId: number, data: Partial<{
+export type CrmCompanyWritable = Partial<{
   name: string
   website: string | null
   phone: string | null
@@ -18377,13 +18494,95 @@ export function updateCrmCompany(id: number, workspaceId: number, data: Partial<
   company_size: string | null
   notes: string | null
   owner_id: number | null
-}>): CrmCompanyRecord | null {
+  avatar_color: string | null
+  avatar_url: string | null
+  monthly_budget: number | null
+  status: string | null
+  brand_voice: string | null
+  goals: string | null
+  target_audience: string | null
+  services: string | null
+  offer: string | null
+  offer_details: string | null
+  instagram_handle: string | null
+  tiktok_handle: string | null
+  facebook_page: string | null
+  location: string | null
+  context: string | null
+  folder_id: number | null
+  ad_account_id: string | null
+  page_id: string | null
+}>
+
+// WORKSPACE-DEFAULT FOOTGUN — see notes above createClientProfile. workspaceId
+// is taken AS GIVEN. Routes MUST pass a member-scoped id resolved via
+// resolvePrimaryWorkspaceId(user.id) or requireAuthWithWorkspace(req).
+export function createCrmCompany(workspaceId: number, data: CrmCompanyWritable & {
+  name: string
+  ownerId?: number | null
+}): CrmCompanyRecord {
+  const now = Math.floor(Date.now() / 1000)
+  const str = (v: unknown): string | null => {
+    if (v === null || v === undefined) return null
+    if (typeof v === 'string') { const t = v.trim(); return t || null }
+    return String(v)
+  }
+  const num = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === '') return null
+    const n = typeof v === 'number' ? v : Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  const result = getDb().prepare(`
+    INSERT INTO crm_companies (
+      workspace_id, public_id, name, website, phone, industry, company_size, notes, owner_id,
+      avatar_color, avatar_url, monthly_budget, status, brand_voice, goals, target_audience,
+      services, offer, offer_details, instagram_handle, tiktok_handle, facebook_page, location,
+      context, folder_id, ad_account_id, page_id,
+      created_at, updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    workspaceId,
+    generatePublicId(),
+    data.name.trim(),
+    str(data.website),
+    str(data.phone),
+    str(data.industry),
+    str(data.company_size),
+    str(data.notes),
+    data.ownerId ?? data.owner_id ?? null,
+    str(data.avatar_color),
+    str(data.avatar_url),
+    num(data.monthly_budget),
+    str(data.status),
+    str(data.brand_voice),
+    str(data.goals),
+    str(data.target_audience),
+    str(data.services),
+    str(data.offer),
+    str(data.offer_details),
+    str(data.instagram_handle),
+    str(data.tiktok_handle),
+    str(data.facebook_page),
+    str(data.location),
+    str(data.context),
+    num(data.folder_id),
+    str(data.ad_account_id),
+    str(data.page_id),
+    now,
+    now,
+  )
+  return getCrmCompanyById(Number(result.lastInsertRowid), workspaceId) as CrmCompanyRecord
+}
+
+export function updateCrmCompany(id: number, workspaceId: number, data: CrmCompanyWritable): CrmCompanyRecord | null {
   const existing = getCrmCompanyById(id, workspaceId)
   if (!existing) return null
   const sets: string[] = []
   const params: Array<string | number | null> = []
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined) continue
+    if (!(ALLOWED_CRM_COMPANY_COLUMNS as readonly string[]).includes(key)) continue
     sets.push(`${key} = ?`)
     params.push((value as string | number | null) ?? null)
   }
@@ -22460,6 +22659,9 @@ export interface CrmOpportunityQueryOpts {
   source?: string | null
   tag?: string | null
   pipeline_stage_ids?: number[]
+  // Filter by stage name (the crm_opportunities.stage TEXT column). Used to
+  // scope a pipeline's deals — callers resolve pipeline_id → stage names.
+  stages?: string[]
   value_min?: number | null
   value_max?: number | null
   created_from?: string | null
@@ -22499,6 +22701,11 @@ export function getCrmOpportunities(opts: CrmOpportunityQueryOpts): CrmOpportuni
   if (opts.tag) {
     clauses.push('EXISTS (SELECT 1 FROM crm_opportunity_tags t WHERE t.opportunity_id = o.id AND LOWER(t.tag) = ?)')
     params.push(String(opts.tag).toLowerCase())
+  }
+  if (opts.stages && opts.stages.length) {
+    const placeholders = opts.stages.map(() => '?').join(',')
+    clauses.push(`o.stage IN (${placeholders})`)
+    for (const s of opts.stages) params.push(s)
   }
   if (opts.value_min != null) {
     clauses.push('o.value >= ?')
@@ -34366,4 +34573,224 @@ export function getRecentMeetingProcessingEvents(limit: number = 50): MeetingPro
     ORDER BY started_at DESC
     LIMIT ?
   `).all(limit) as MeetingProcessingEvent[]
+}
+
+// ─── crm_user_calendar_accounts (multi-provider: google | microsoft | icloud | ical_url) ───
+//
+// Used by /api/ms365/* (and parallel google/iCloud flows). Owns the OAuth
+// account row. Per-calendar visibility/primary/busy-status flags live in
+// calendars_json on the same row (no parallel ms365_calendars table) — keeps
+// the multi-provider story simple. See src/lib/ms365.ts for the JSON shape.
+
+export interface CrmUserCalendarAccount {
+  id: number
+  user_id: number
+  workspace_id: number
+  provider: 'google' | 'microsoft' | 'icloud' | 'ical_url'
+  provider_account_id: string
+  display_email: string | null
+  access_token_encrypted: string | null
+  refresh_token_encrypted: string | null
+  token_expires_at: number | null
+  ical_url: string | null
+  sync_direction: 'both' | 'push_only' | 'pull_only' | 'none'
+  last_synced_at: number | null
+  last_sync_error: string | null
+  calendars_json: string
+  is_primary_for_bookings: number
+  connected_at: number
+  disconnected_at: number | null
+}
+
+export function getCrmUserCalendarAccountsByUser(
+  userId: number,
+  workspaceId: number,
+  opts?: { provider?: 'google' | 'microsoft' | 'icloud' | 'ical_url'; includeDisconnected?: boolean },
+): CrmUserCalendarAccount[] {
+  const where: string[] = ['user_id = ?', 'workspace_id = ?']
+  const params: Array<string | number> = [userId, workspaceId]
+  if (!opts?.includeDisconnected) where.push('disconnected_at IS NULL')
+  if (opts?.provider) {
+    where.push('provider = ?')
+    params.push(opts.provider)
+  }
+  return getDb()
+    .prepare(
+      `SELECT * FROM crm_user_calendar_accounts
+       WHERE ${where.join(' AND ')}
+       ORDER BY is_primary_for_bookings DESC, connected_at DESC, id DESC`,
+    )
+    .all(...params) as CrmUserCalendarAccount[]
+}
+
+export function getCrmUserCalendarAccountById(
+  id: number,
+): CrmUserCalendarAccount | null {
+  const row = getDb()
+    .prepare('SELECT * FROM crm_user_calendar_accounts WHERE id = ?')
+    .get(id) as CrmUserCalendarAccount | undefined
+  return row || null
+}
+
+export interface UpsertCrmUserCalendarAccountInput {
+  userId: number
+  workspaceId: number
+  provider: 'google' | 'microsoft' | 'icloud' | 'ical_url'
+  providerAccountId: string
+  displayEmail?: string | null
+  accessTokenEncrypted?: string | null
+  refreshTokenEncrypted?: string | null
+  tokenExpiresAt?: number | null
+  calendarsJson?: string
+  syncDirection?: 'both' | 'push_only' | 'pull_only' | 'none'
+  isPrimaryForBookings?: boolean
+}
+
+/** Upsert keyed on (user_id, workspace_id, provider, provider_account_id).
+ *  If the row was previously soft-disconnected, this clears disconnected_at. */
+export function upsertCrmUserCalendarAccount(
+  input: UpsertCrmUserCalendarAccountInput,
+): CrmUserCalendarAccount {
+  const db = getDb()
+  const now = Math.floor(Date.now() / 1000)
+  const calendarsJson = input.calendarsJson ?? '[]'
+  const syncDirection = input.syncDirection ?? 'both'
+
+  const existing = db
+    .prepare(
+      `SELECT id FROM crm_user_calendar_accounts
+       WHERE user_id = ? AND workspace_id = ? AND provider = ? AND provider_account_id = ?
+       LIMIT 1`,
+    )
+    .get(
+      input.userId,
+      input.workspaceId,
+      input.provider,
+      input.providerAccountId,
+    ) as { id: number } | undefined
+
+  if (existing) {
+    db.prepare(
+      `UPDATE crm_user_calendar_accounts SET
+         display_email = COALESCE(?, display_email),
+         access_token_encrypted = COALESCE(?, access_token_encrypted),
+         refresh_token_encrypted = COALESCE(?, refresh_token_encrypted),
+         token_expires_at = COALESCE(?, token_expires_at),
+         calendars_json = ?,
+         sync_direction = ?,
+         is_primary_for_bookings = COALESCE(?, is_primary_for_bookings),
+         disconnected_at = NULL,
+         last_sync_error = NULL,
+         last_synced_at = ?
+       WHERE id = ?`,
+    ).run(
+      input.displayEmail ?? null,
+      input.accessTokenEncrypted ?? null,
+      input.refreshTokenEncrypted ?? null,
+      input.tokenExpiresAt ?? null,
+      calendarsJson,
+      syncDirection,
+      input.isPrimaryForBookings === undefined
+        ? null
+        : input.isPrimaryForBookings
+          ? 1
+          : 0,
+      now,
+      existing.id,
+    )
+    return getCrmUserCalendarAccountById(existing.id) as CrmUserCalendarAccount
+  }
+
+  const result = db
+    .prepare(
+      `INSERT INTO crm_user_calendar_accounts (
+         user_id, workspace_id, provider, provider_account_id, display_email,
+         access_token_encrypted, refresh_token_encrypted, token_expires_at,
+         sync_direction, calendars_json, is_primary_for_bookings,
+         connected_at, disconnected_at, last_synced_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
+    )
+    .run(
+      input.userId,
+      input.workspaceId,
+      input.provider,
+      input.providerAccountId,
+      input.displayEmail ?? null,
+      input.accessTokenEncrypted ?? null,
+      input.refreshTokenEncrypted ?? null,
+      input.tokenExpiresAt ?? null,
+      syncDirection,
+      calendarsJson,
+      input.isPrimaryForBookings ? 1 : 0,
+      now,
+      now,
+    )
+  return getCrmUserCalendarAccountById(
+    Number(result.lastInsertRowid),
+  ) as CrmUserCalendarAccount
+}
+
+/** Soft-disconnect: set disconnected_at, clear tokens (revoke surface), keep
+ *  the row so calendars_json + appointments history remain auditable. */
+export function disconnectCrmUserCalendarAccount(id: number): boolean {
+  const now = Math.floor(Date.now() / 1000)
+  const result = getDb()
+    .prepare(
+      `UPDATE crm_user_calendar_accounts
+       SET disconnected_at = ?,
+           access_token_encrypted = NULL,
+           refresh_token_encrypted = NULL,
+           token_expires_at = NULL,
+           is_primary_for_bookings = 0
+       WHERE id = ? AND disconnected_at IS NULL`,
+    )
+    .run(now, id)
+  return result.changes > 0
+}
+
+export function updateCrmUserCalendarAccountCalendarsJson(
+  id: number,
+  calendarsJson: string,
+): void {
+  getDb()
+    .prepare(
+      'UPDATE crm_user_calendar_accounts SET calendars_json = ? WHERE id = ?',
+    )
+    .run(calendarsJson, id)
+}
+
+/** Used by token refresh. Pass null for refreshTokenEncrypted to KEEP the
+ *  existing one (Microsoft frequently omits a new refresh token on refresh). */
+export function updateCrmUserCalendarAccountTokens(
+  id: number,
+  args: {
+    accessTokenEncrypted: string
+    refreshTokenEncrypted: string | null
+    tokenExpiresAt: number
+  },
+): void {
+  const db = getDb()
+  if (args.refreshTokenEncrypted) {
+    db.prepare(
+      `UPDATE crm_user_calendar_accounts
+       SET access_token_encrypted = ?,
+           refresh_token_encrypted = ?,
+           token_expires_at = ?,
+           last_sync_error = NULL
+       WHERE id = ?`,
+    ).run(
+      args.accessTokenEncrypted,
+      args.refreshTokenEncrypted,
+      args.tokenExpiresAt,
+      id,
+    )
+  } else {
+    db.prepare(
+      `UPDATE crm_user_calendar_accounts
+       SET access_token_encrypted = ?,
+           token_expires_at = ?,
+           last_sync_error = NULL
+       WHERE id = ?`,
+    ).run(args.accessTokenEncrypted, args.tokenExpiresAt, id)
+  }
 }

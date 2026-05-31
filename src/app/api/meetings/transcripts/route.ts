@@ -2,51 +2,47 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 
-const SUPABASE_URL = process.env.SUPABASE_URL || ''
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-
-interface PlaudTranscript {
+interface LocalTranscript {
   id: number
   title: string
-  summary: string
-  transcript: string
+  summary: string | null
   created_at: string
   recorded_at: string
-  processed_by_jimmy: boolean | null
-  jimmy_processed_at: string | null
-}
-
-async function supabaseGet(path: string): Promise<PlaudTranscript[]> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return []
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-    },
-    next: { revalidate: 0 },
-  })
-  if (!res.ok) return []
-  return res.json()
+  processed_at: string | null
+  doc_id: number | null
 }
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  // Plaud transcripts belong to the owner's integration -- only show to owner
+  // Transcripts belong to the owner's integration -- only show to owner
   if (user.role !== 'owner') return NextResponse.json([])
   const limit = Number(request.nextUrl.searchParams.get('limit')) || 50
   const search = request.nextUrl.searchParams.get('search') || ''
 
-  let query = `plaud_transcripts?order=recorded_at.desc&limit=${limit}`
+  const db = getDb()
+
+  // Read transcripts from local SQLite (was previously Supabase plaud_transcripts).
+  // Fyxer-ingest, generic webhook, Zoom, and IMAP all write here.
+  let transcripts: LocalTranscript[]
   if (search) {
-    query += `&or=(title.ilike.*${encodeURIComponent(search)}*,summary.ilike.*${encodeURIComponent(search)}*)`
+    const term = `%${search}%`
+    transcripts = db.prepare(
+      `SELECT id, title, summary, created_at, recorded_at, processed_at, doc_id
+       FROM transcripts
+       WHERE title LIKE ? OR summary LIKE ?
+       ORDER BY recorded_at DESC
+       LIMIT ?`
+    ).all(term, term, limit) as LocalTranscript[]
+  } else {
+    transcripts = db.prepare(
+      `SELECT id, title, summary, created_at, recorded_at, processed_at, doc_id
+       FROM transcripts
+       ORDER BY recorded_at DESC
+       LIMIT ?`
+    ).all(limit) as LocalTranscript[]
   }
 
-  // Start Supabase fetch in parallel with local DB queries
-  const transcriptsPromise = supabaseGet(query)
-
-  // Do all sync DB work while Supabase request is in flight
-  const db = getDb()
   const meetingDocs = db.prepare(
     "SELECT id, title, content, business_id, client_id FROM docs WHERE doc_type = 'meeting-note' ORDER BY id DESC"
   ).all() as { id: number; title: string; content: string; business_id: number | null; client_id: number | null }[]
@@ -130,8 +126,13 @@ export async function GET(request: NextRequest) {
   const projectNameMap: Record<number, string> = {}
   for (const p of projectRows) projectNameMap[p.id] = p.name
 
-  // Await Supabase result (DB work completed while this was in flight)
-  const transcripts = await transcriptsPromise
+  // Build a doc-id lookup so we can resolve meta when transcripts.doc_id is set
+  // but the title-based match misses (timezone drift on the date suffix, etc).
+  const docMetaById: Record<number, (typeof docMetaByTitle)[string]> = {}
+  for (const key of Object.keys(docMetaByTitle)) {
+    const m = docMetaByTitle[key]
+    docMetaById[m.id] = m
+  }
 
   // Return without full transcript text (too large for list view)
   const result = transcripts.map(t => {
@@ -140,7 +141,11 @@ export async function GET(request: NextRequest) {
     const dayStr = new Date(t.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     const fullTitle = `${docTitle} (${dayStr})`
 
-    const meta = docMetaByTitle[fullTitle] || docMetaByTitle[docTitle] || null
+    const meta =
+      docMetaByTitle[fullTitle] ||
+      docMetaByTitle[docTitle] ||
+      (t.doc_id ? docMetaById[t.doc_id] : null) ||
+      null
     const linkedTasks = (tasksByMeeting[docTitle] || []).map(task => ({
       id: task.id,
       title: task.title,
@@ -162,10 +167,10 @@ export async function GET(request: NextRequest) {
       summary: t.summary,
       recorded_at: t.recorded_at,
       created_at: t.created_at,
-      processed: !!t.processed_by_jimmy,
-      processed_at: t.jimmy_processed_at,
+      processed: !!t.processed_at,
+      processed_at: t.processed_at,
       action_item_count: linkedTasks.length || meta?.actionCount || 0,
-      doc_id: meta?.id || null,
+      doc_id: meta?.id || t.doc_id || null,
       client_name: meta?.client || null,
       business_name: meta?.business || null,
       attendees: meta?.attendees || [],

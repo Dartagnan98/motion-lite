@@ -168,15 +168,17 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get('search') || undefined
   const limit = request.nextUrl.searchParams.get('limit') ? Number(request.nextUrl.searchParams.get('limit')) : undefined
   const businessId = request.nextUrl.searchParams.get('business_id') ? Number(request.nextUrl.searchParams.get('business_id')) : undefined
+  const clientId = request.nextUrl.searchParams.get('client_id') ? Number(request.nextUrl.searchParams.get('client_id')) : undefined
   const docType = request.nextUrl.searchParams.get('doc_type') || undefined
   if (workspaceId && !isWorkspaceMember(user.id, workspaceId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  // Business-scoped or doc_type-scoped query
-  if (businessId || docType) {
+  // Business / client / doc_type scoped query
+  if (businessId || clientId || docType) {
     const conditions: string[] = []
     const vals: unknown[] = []
     if (businessId) { conditions.push('business_id = ?'); vals.push(businessId) }
+    if (clientId) { conditions.push('client_id = ?'); vals.push(clientId) }
     if (docType) { conditions.push('doc_type = ?'); vals.push(docType) }
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     const docs = getDb().prepare(`SELECT * FROM docs ${where} ORDER BY created_at DESC LIMIT ?`).all(...vals, limit || 50)

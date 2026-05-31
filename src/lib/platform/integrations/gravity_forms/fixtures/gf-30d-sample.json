@@ -1,0 +1,52 @@
+{
+  "siteUrl": "https://glenvalleydental.com",
+  "periodStart": "2026-04-01",
+  "periodEnd": "2026-04-30",
+  "formIds": ["1", "3"],
+  "totalEntries": 47,
+  "byForm": [
+    {
+      "formId": "1",
+      "formTitle": "Contact Us",
+      "entryCount": 32
+    },
+    {
+      "formId": "3",
+      "formTitle": "New Patient Appointment Request",
+      "entryCount": 15
+    }
+  ],
+  "daily": [
+    { "date": "2026-04-01", "count": 1 },
+    { "date": "2026-04-02", "count": 2 },
+    { "date": "2026-04-03", "count": 0 },
+    { "date": "2026-04-04", "count": 1 },
+    { "date": "2026-04-05", "count": 0 },
+    { "date": "2026-04-06", "count": 0 },
+    { "date": "2026-04-07", "count": 3 },
+    { "date": "2026-04-08", "count": 2 },
+    { "date": "2026-04-09", "count": 1 },
+    { "date": "2026-04-10", "count": 2 },
+    { "date": "2026-04-11", "count": 1 },
+    { "date": "2026-04-12", "count": 0 },
+    { "date": "2026-04-13", "count": 0 },
+    { "date": "2026-04-14", "count": 4 },
+    { "date": "2026-04-15", "count": 3 },
+    { "date": "2026-04-16", "count": 2 },
+    { "date": "2026-04-17", "count": 1 },
+    { "date": "2026-04-18", "count": 2 },
+    { "date": "2026-04-19", "count": 0 },
+    { "date": "2026-04-20", "count": 0 },
+    { "date": "2026-04-21", "count": 3 },
+    { "date": "2026-04-22", "count": 2 },
+    { "date": "2026-04-23", "count": 1 },
+    { "date": "2026-04-24", "count": 2 },
+    { "date": "2026-04-25", "count": 1 },
+    { "date": "2026-04-26", "count": 0 },
+    { "date": "2026-04-27", "count": 0 },
+    { "date": "2026-04-28", "count": 4 },
+    { "date": "2026-04-29", "count": 3 },
+    { "date": "2026-04-30", "count": 5 }
+  ],
+  "fetchedAt": "2026-05-01T00:12:00.000Z"
+}
